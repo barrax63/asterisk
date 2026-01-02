@@ -42,7 +42,7 @@ RUN apt-get update && \
     ./configure && \
     # Build menuselect binary/options
     make menuselect.makeopts && \
-    # Disable noisy optional modules
+    # Disable modules for lean IVR-only build (keeping only PJSIP + alaw/ulaw/g722)
     menuselect/menuselect \
       --disable res_config_pgsql \
       --disable res_config_ldap \
@@ -66,13 +66,115 @@ RUN apt-get update && \
       --disable chan_alsa \
       --disable format_ogg_vorbis \
       --disable res_phoneprov \
+      --disable chan_sip \
+      --disable chan_iax2 \
+      --disable chan_mgcp \
+      --disable chan_skinny \
+      --disable chan_unistim \
+      --disable chan_ooh323 \
+      --disable chan_dahdi \
+      --disable chan_mobile \
+      --disable chan_console \
+      --disable chan_misdn \
+      --disable chan_phone \
+      --disable app_voicemail \
+      --disable app_voicemailmain \
+      --disable app_directory \
+      --disable app_minivm \
+      --disable app_confbridge \
+      --disable app_meetme \
+      --disable app_queue \
+      --disable app_agent_pool \
+      --disable app_chanspy \
+      --disable app_parkandannounce \
+      --disable app_parkedcall \
+      --disable res_parking \
+      --disable app_fax \
+      --disable res_fax \
+      --disable res_fax_spandsp \
+      --disable app_celgenuserevent \
+      --disable app_mysql \
+      --disable app_morsecode \
+      --disable app_getcpeid \
+      --disable app_setcallerid \
+      --disable app_adsiprog \
+      --disable app_alarmreceiver \
+      --disable app_amd \
+      --disable app_festival \
+      --disable app_dictate \
+      --disable app_dumpchan \
+      --disable app_externalivr \
+      --disable app_followme \
+      --disable app_forkcdr \
+      --disable app_ices \
+      --disable app_image \
+      --disable app_mixmonitor \
+      --disable app_nbscat \
+      --disable app_page \
+      --disable app_record \
+      --disable app_sms \
+      --disable app_speech_utils \
+      --disable app_test \
+      --disable app_url \
+      --disable app_zapateller \
+      --disable res_ari \
+      --disable res_ari_applications \
+      --disable res_ari_asterisk \
+      --disable res_ari_bridges \
+      --disable res_ari_channels \
+      --disable res_ari_device_states \
+      --disable res_ari_endpoints \
+      --disable res_ari_events \
+      --disable res_ari_mailboxes \
+      --disable res_ari_model \
+      --disable res_ari_playbacks \
+      --disable res_ari_recordings \
+      --disable res_ari_sounds \
+      --disable res_http_websocket \
+      --disable res_stasis \
+      --disable res_stasis_answer \
+      --disable res_stasis_playback \
+      --disable res_stasis_recording \
+      --disable res_stasis_snoop \
+      --disable res_stasis_test \
+      --disable res_hep \
+      --disable res_hep_pjsip \
+      --disable res_hep_rtcp \
+      --disable res_snmp \
+      --disable res_corosync \
+      --disable res_xmpp \
+      --disable chan_motif \
+      --disable res_musiconhold \
+      --disable codec_ilbc \
+      --disable codec_lpc10 \
+      --disable codec_speex \
+      --disable codec_opus \
+      --disable codec_silk \
+      --disable codec_siren7 \
+      --disable codec_siren14 \
+      --disable codec_g726 \
+      --disable codec_adpcm \
+      --disable codec_gsm \
+      --disable codec_resample \
+      --disable codec_dahdi \
+      --disable format_g719 \
+      --disable format_g723 \
+      --disable format_g726 \
+      --disable format_g729 \
+      --disable format_siren7 \
+      --disable format_siren14 \
+      --disable format_sln \
+      --disable format_vox \
+      --disable format_ilbc \
+      --disable format_h263 \
+      --disable format_h264 \
       menuselect.makeopts && \
     # Compile using all available CPU cores
     make -j"$(nproc)" && \
     # Install the compiled binaries and modules
     make install && \
-    # Install sample configuration files
-    make samples && \
+    # Create minimal config directories (no samples)
+    mkdir -p /etc/asterisk && \
     # Install startup scripts / system integration
     make config && \
     # Refresh runtime linker cache
@@ -155,10 +257,19 @@ RUN apt-get update && \
 COPY --from=builder /usr/sbin/asterisk /usr/sbin/asterisk
 COPY --from=builder /usr/lib/asterisk /usr/lib/asterisk
 COPY --from=builder /usr/lib/libasterisk*.so* /usr/lib/
-COPY --from=builder /etc/asterisk /etc/asterisk
 COPY --from=builder /var/lib/asterisk /var/lib/asterisk
 COPY --from=builder /var/spool/asterisk /var/spool/asterisk
 COPY --from=builder /var/log/asterisk /var/log/asterisk
+
+# Copy lean IVR-only configuration files
+COPY asterisk/config/asterisk.conf /etc/asterisk/asterisk.conf
+COPY asterisk/config/modules.conf /etc/asterisk/modules.conf
+COPY asterisk/config/pjsip.conf /etc/asterisk/pjsip.conf
+COPY asterisk/config/extensions.conf /etc/asterisk/extensions.conf
+
+# Copy entrypoint script for environment variable substitution
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Create a dedicated asterisk user/group and fix permissions,
 # and configure the history file location.
@@ -169,7 +280,7 @@ RUN set -eux; \
     \
     # Ensure directories exist (COPY above should have created them, but we
     # re-create idempotently in case of future changes)
-    mkdir -p /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
+    mkdir -p /etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
     \
     # Set ownership for Asterisk directories
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /etc/asterisk && \
@@ -214,6 +325,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 # Run as non-root asterisk user
 USER ${ASTERISK_USER}
 
-# Start Asterisk in the foreground
-ENTRYPOINT ["asterisk"]
-CMD ["-f", "-vvv"]
+# Use entrypoint script to handle environment variable substitution
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["asterisk", "-f", "-vvv"]
