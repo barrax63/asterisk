@@ -42,7 +42,7 @@ Pre-configured PJSIP configuration for FritzBox SIP trunk registration. Uses env
 Dialplan with language selection and a simple main menu. Includes:
 - `[incoming_calls]` context that answers, sets default language to German, and jumps to language selection
 - `[language_selection]` context to pick German or English before entering the main menu
-- `[main_menu]` context that plays prompts and records the call via `MixMonitor` to `/mnt/usb-backup/recordings/${UNIQUEID}.wav`
+- `[main_menu]` context that plays prompts and records the call via `MixMonitor` to `/opt/asterisk/recordings/${UNIQUEID}.wav`
 
 ## Usage
 
