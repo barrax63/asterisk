@@ -4,13 +4,33 @@ set -e
 # This script runs as the asterisk user, so we need to handle file modifications
 # The config files are already owned by asterisk user from Dockerfile
 
+CONFIG_DIR="/etc/asterisk"
+RUNTIME_CONFIG_DIR="/tmp/asterisk-config"
+ACTIVE_CONFIG_DIR="${CONFIG_DIR}"
+
+# If the mounted config directory isn't writable (common with bind mounts),
+# work on a runtime copy we can modify.
+if [ ! -w "${CONFIG_DIR}" ] || [ ! -w "${CONFIG_DIR}/pjsip.conf" ]; then
+    echo "Config directory not writable, using runtime copy at ${RUNTIME_CONFIG_DIR}..."
+    ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
+    mkdir -p "${ACTIVE_CONFIG_DIR}"
+    cp -R "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
+    chmod -R u+w "${ACTIVE_CONFIG_DIR}"
+
+    if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
+        sed -i "s|^astetcdir[[:space:]]*=>[[:space:]]*.*|astetcdir => ${ACTIVE_CONFIG_DIR}|" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
+    fi
+fi
+
+PJSIP_PATH="${ACTIVE_CONFIG_DIR}/pjsip.conf"
+
 # Replace environment variables in pjsip.conf if they are set
-if [ -f /etc/asterisk/pjsip.conf ]; then
+if [ -f "${PJSIP_PATH}" ]; then
     echo "Configuring pjsip.conf with environment variables..."
     
     # Create a temporary file for modifications
     TEMP_PJSIP=$(mktemp)
-    cp /etc/asterisk/pjsip.conf "$TEMP_PJSIP"
+    cp "${PJSIP_PATH}" "$TEMP_PJSIP"
 
     # Replace ASTERISK_USER
     if [ -n "${ASTERISK_USER}" ]; then
@@ -45,8 +65,13 @@ if [ -f /etc/asterisk/pjsip.conf ]; then
     fi
     
     # Move the modified file back
-    mv "$TEMP_PJSIP" /etc/asterisk/pjsip.conf
+    mv "$TEMP_PJSIP" "${PJSIP_PATH}"
     echo "pjsip.conf configuration complete."
+fi
+
+# If we had to relocate configs, ensure Asterisk reads from the runtime copy
+if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ "$#" -ge 1 ] && [ "$1" = "asterisk" ]; then
+    set -- "$@" "-C" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
 fi
 
 # Execute the CMD passed to the container (asterisk command)
