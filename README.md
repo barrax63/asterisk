@@ -32,7 +32,8 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 ├── QUICKREF.md              # Quick reference card and command cheatsheet
 ├── IVR_BUILD.md             # IVR-only build & configuration guide
 ├── verify-ivr-setup.sh      # Automated verification script
-└── config/                  # Baked into image, seeds /etc/asterisk volume
+├── config/                  # Baked into image, seeds /etc/asterisk volume
+└── data/                    # Baked into image, seeds /var/lib/asterisk volume
 ```
 
 - Place your configuration files (e.g. `pjsip.conf`, `extensions.conf`) in `config/` before build; they will seed the `asterisk_config` volume.
@@ -87,7 +88,7 @@ FRITZBOX_IP=192.168.1.1
 
 ### 4. Prepare Configuration (optional)
 
-Configuration files are pre-configured in `asterisk/config/` and baked into the image; they seed the `asterisk_config` named volume on first start. If you want to customize before build, edit the files under `asterisk/config/` now.
+Configuration files are pre-configured in `config/` and baked into the image; they seed the `asterisk_config` named volume on first start. If you want to customize before build, edit the files under `config/` now.
 
 ### 5. Build and Start
 
@@ -118,11 +119,11 @@ You should see an Asterisk banner and a CLI prompt.
 
 ### 7. Customize Your IVR Dialplan
 
-The container comes with a basic IVR dialplan in `asterisk/config/extensions.conf`. Customize it for your needs:
+The container comes with a basic IVR dialplan in `config/extensions.conf`. Customize it for your needs:
 
 ```bash
 # Edit the dialplan
-vi asterisk/config/extensions.conf
+vi config/extensions.conf
 
 # Rebuild the image to include your changes
 docker compose build
@@ -138,7 +139,7 @@ For detailed configuration options, verification steps, and customization, see *
 ## Accessing Configuration, Data and Logs
 
 - **Configuration files**:  
-  Baked into the image from `asterisk/config/` and stored in the `asterisk_config` named volume at `/etc/asterisk`. To edit at runtime, use `docker compose exec asterisk sh -c 'vi /etc/asterisk/pjsip.conf'` or `docker compose cp`.
+  Baked into the image from `config/` and stored in the `asterisk_config` named volume at `/etc/asterisk`. To edit at runtime, use `docker compose exec asterisk sh -c 'vi /etc/asterisk/pjsip.conf'` or `docker compose cp`.
 
 - **Data and sound files**:  
   Persisted in the `asterisk_data` volume at `/var/lib/asterisk`. Copy files in with `docker compose cp` or edit via `docker compose exec`.
@@ -183,7 +184,7 @@ Configuration files are persisted in the `asterisk_config` named volume at `/etc
 
 To add or update sound files or other data used by Asterisk:
 
-1. Place or update the files in `./asterisk/data`.
+1. Place or update the files in `data/`.
 2. Ensure paths in your Asterisk configuration match where the files are located within `/var/lib/asterisk`.
 
 ## Ports Reference
@@ -195,35 +196,6 @@ To add or update sound files or other data used by Asterisk:
 | 10000–20000  | UDP      | UDP port range used by Asterisk RTP |
 
 Adjust these ports in `docker-compose.yml` if you use non‑default values, and make sure your firewall configuration matches.
-
-## Verification
-
-After deploying the IVR-only configuration, verify the setup:
-
-### Automated Verification
-```bash
-# Run the verification script
-./verify-ivr-setup.sh
-```
-
-### Quick Module Check
-```bash
-# Connect to Asterisk CLI
-docker compose exec asterisk asterisk -rx "module show"
-
-# Check codecs (should only see alaw, ulaw, g722)
-docker compose exec asterisk asterisk -rx "core show codecs"
-
-# Check PJSIP status
-docker compose exec asterisk asterisk -rx "pjsip show endpoints"
-```
-
-### Expected Results
-- **Modules**: Only PJSIP, RTP, IVR apps, and essential resources loaded
-- **Codecs**: alaw, ulaw, g722 only
-- **No legacy**: chan_sip, chan_iax2, app_voicemail, app_queue not loaded
-
-For comprehensive verification procedures and troubleshooting, see **[IVR_BUILD.md](IVR_BUILD.md#verification-steps)**.
 
 ## Security Considerations
 
