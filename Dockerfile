@@ -32,11 +32,12 @@ RUN apt-get update && \
 WORKDIR /usr/src
 
 # Download, extract, build, and install Asterisk plus sample configs & init scripts
-RUN wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
+RUN apt-get update && \
+    wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
     tar xvf asterisk-${ASTERISK_VERSION}.tar.gz && \
     cd asterisk-20.* && \
-    # Install additional script dependencies
-    contrib/scripts/install_prereq install && \
+    # Install additional script dependencies (force apt-get, not aptitude)
+    ASTERISK_PREFER_APTITUDE=no contrib/scripts/install_prereq install && \
     # Configure the build
     ./configure && \
     # Compile using all available CPU cores
