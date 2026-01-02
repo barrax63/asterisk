@@ -163,7 +163,11 @@ fi
 
 # If running as root, drop to the configured asterisk user before starting
 if [ "$(id -u)" -eq 0 ] && [ "${CMD_IS_ASTERISK}" = true ]; then
-    exec runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@"
+    if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1 && getent group "${ASTERISK_GROUP_NAME}" >/dev/null 2>&1; then
+        exec runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@"
+    else
+        echo "Warning: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; running as current user"
+    fi
 fi
 
 # Execute the CMD passed to the container (asterisk command)
