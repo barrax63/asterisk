@@ -13,6 +13,10 @@ PJSIP_WRITABLE=true
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 
+escape_for_sed() {
+    printf '%s' "$1" | sed 's/[\\/&]/\\&/g'
+}
+
 if [ -n "${CHOWN_PATHS:-}" ]; then
     CHOWN_TARGETS=()
     while IFS= read -r path; do
@@ -71,10 +75,8 @@ if [ "${CONFIG_WRITABLE}" = false ]; then
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        ESCAPED_CONFIG_DIR="${ACTIVE_CONFIG_DIR//\\/\\\\}"
-        ESCAPED_CONFIG_DIR="${ESCAPED_CONFIG_DIR//\//\\/}"
-        ESCAPED_CONFIG_DIR="${ESCAPED_CONFIG_DIR//&/\\&}"
-        sed -i "/^astetcdir[[:space:]]*=>/c astetcdir => ${ESCAPED_CONFIG_DIR}" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
+        ESCAPED_CONFIG_DIR=$(escape_for_sed "${ACTIVE_CONFIG_DIR}")
+        sed -i "s#^astetcdir[[:space:]]*=>[[:space:]]*.*#astetcdir => ${ESCAPED_CONFIG_DIR}#" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
     fi
 fi
 
