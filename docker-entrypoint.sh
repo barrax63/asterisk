@@ -63,7 +63,7 @@ DETECTED_GID=""
 
 # Try to detect UID/GID from the first available mounted directory
 for check_dir in /var/lib/asterisk /etc/asterisk /var/log/asterisk /opt/asterisk; do
-    if [ -d "${check_dir}" ] && [ -e "${check_dir}" ]; then
+    if [ -d "${check_dir}" ]; then
         # Get the owner UID/GID of the directory
         DIR_OWNER=$(stat -c '%u:%g' "${check_dir}" 2>/dev/null || echo "")
         if [ -n "${DIR_OWNER}" ] && [ "${DIR_OWNER}" != "0:0" ]; then
@@ -85,10 +85,21 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             # Update group GID if it differs
             if [ "${ASTERISK_GID}" != "${DETECTED_GID}" ]; then
                 if getent group "${DETECTED_GID}" >/dev/null 2>&1; then
-                    # GID already exists, remove old group and use existing one
-                    echo "GID ${DETECTED_GID} already exists, removing old group"
-                    groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
-                    ASTERISK_GROUP_NAME=$(getent group "${DETECTED_GID}" | cut -d: -f1)
+                    # GID already exists - check if it's a system group we shouldn't reuse
+                    EXISTING_GROUP=$(getent group "${DETECTED_GID}" | cut -d: -f1)
+                    case "${EXISTING_GROUP}" in
+                        root|daemon|sys|adm|tty|disk|lp|mail|news|uucp|man|proxy|kmem|dialout|fax|voice|cdrom|floppy|tape|sudo|audio|dip|www-data|backup|operator|list|irc|src|gnats|shadow|utmp|video|sasl|plugdev|staff|games|users|nogroup)
+                            echo "ERROR: Detected GID ${DETECTED_GID} belongs to system group '${EXISTING_GROUP}'"
+                            echo "ERROR: Cannot safely reuse system group. Please use a non-system UID/GID for the mounted volume."
+                            exit 1
+                            ;;
+                        *)
+                            echo "WARNING: GID ${DETECTED_GID} already exists as group '${EXISTING_GROUP}', will use it"
+                            # Delete old group and use the existing one
+                            groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
+                            ASTERISK_GROUP_NAME="${EXISTING_GROUP}"
+                            ;;
+                    esac
                 else
                     groupmod -g "${DETECTED_GID}" "${ASTERISK_GROUP_NAME}"
                 fi
@@ -98,10 +109,21 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             # Update user UID if it differs
             if [ "${ASTERISK_UID}" != "${DETECTED_UID}" ]; then
                 if getent passwd "${DETECTED_UID}" >/dev/null 2>&1; then
-                    # UID already exists, remove old user and use existing one
-                    echo "UID ${DETECTED_UID} already exists, removing old user"
-                    userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
-                    ASTERISK_USER_NAME=$(getent passwd "${DETECTED_UID}" | cut -d: -f1)
+                    # UID already exists - check if it's a system user we shouldn't reuse
+                    EXISTING_USER=$(getent passwd "${DETECTED_UID}" | cut -d: -f1)
+                    case "${EXISTING_USER}" in
+                        root|daemon|bin|sys|sync|games|man|lp|mail|news|uucp|proxy|www-data|backup|list|irc|gnats|nobody|systemd-network|systemd-resolve|messagebus|syslog|_apt)
+                            echo "ERROR: Detected UID ${DETECTED_UID} belongs to system user '${EXISTING_USER}'"
+                            echo "ERROR: Cannot safely reuse system user. Please use a non-system UID/GID for the mounted volume."
+                            exit 1
+                            ;;
+                        *)
+                            echo "WARNING: UID ${DETECTED_UID} already exists as user '${EXISTING_USER}', will use it"
+                            # Delete old user and use the existing one
+                            userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
+                            ASTERISK_USER_NAME="${EXISTING_USER}"
+                            ;;
+                    esac
                 else
                     usermod -u "${DETECTED_UID}" -g "${ASTERISK_GROUP_NAME}" "${ASTERISK_USER_NAME}"
                 fi
