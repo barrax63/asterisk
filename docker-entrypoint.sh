@@ -193,8 +193,11 @@ if [ -f "${PJSIP_PATH}" ]; then
     fi
     
     # Move the modified file back
-    # Use cat instead of mv to avoid cross-device/permission issues
-    if ! cat "$TEMP_PJSIP" > "${PJSIP_PATH}"; then
+    # Use cp instead of cat/mv to properly handle permissions
+    # Temporarily take ownership of the file to ensure we can overwrite it
+    # (handles case where file is owned by different user from previous container run)
+    chown root:root "${PJSIP_PATH}" 2>/dev/null || true
+    if ! cp -f "$TEMP_PJSIP" "${PJSIP_PATH}"; then
         echo "ERROR: Failed to write modified configuration to ${PJSIP_PATH}"
         echo "ERROR: Temporary file preserved at: $TEMP_PJSIP"
         exit 1
