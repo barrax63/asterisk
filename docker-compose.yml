@@ -1,0 +1,46 @@
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-security-baseline: &security-baseline
+  security_opt:
+    - no-new-privileges:true
+    - apparmor=docker-default
+  cap_drop:
+    - ALL
+
+services:
+  asterisk:
+    <<: *security-baseline
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: barrax63/asterisk:20-latest
+    init: true
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Berlin
+    ports:
+      - "5060:5060/tcp"
+      - "5060:5060/udp"
+      - "10000-20000:10000-20000/udp"
+    volumes:
+      # Asterisk configuration
+      - ./asterisk/config:/etc/asterisk
+      # Voicemail, SQLite DBs, runtime data
+      - ./asterisk/data:/var/lib/asterisk
+      # Log files
+      - ./asterisk/logs:/var/log/asterisk
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+    logging: *default-logging
