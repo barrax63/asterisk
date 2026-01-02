@@ -89,6 +89,7 @@ RUN apt-get update && \
         ca-certificates \
         iproute2 \
         procps && \
+    ldconfig && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy Asterisk binaries, modules, configs and runtime skeleton from builder
@@ -134,7 +135,13 @@ RUN set -eux; \
     grep -q 'astctlhistory' /etc/asterisk/asterisk.conf || \
       printf '\n[options]\nastctlhistory => /var/lib/asterisk/.asterisk/.asterisk_history\n' \
       >> /etc/asterisk/asterisk.conf && \
-    # Add ldconfig to ensure shared library cache is updated after configuring astctlhistory
+    \
+    # Ensure runtime PID/control dir exists and is owned by asterisk
+    mkdir -p /var/run/asterisk && \
+    chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /var/run/asterisk && \
+    \
+    # Set capabilities so Asterisk can bind low ports / adjust priority if needed
+    setcap 'cap_net_bind_service,cap_sys_nice=+ep' /usr/sbin/asterisk || true && \
     ldconfig
 
 # Volumes for persistent configuration, data and logs inside the container.
