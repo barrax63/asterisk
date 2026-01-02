@@ -4,6 +4,7 @@ set -e
 # This script runs as root to handle permissions and documentation restoration,
 # then drops privileges to the asterisk user when launching Asterisk.
 
+# Configuration
 CONFIG_DIR="/etc/asterisk"
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
@@ -13,6 +14,9 @@ ASTERISK_GID=""
 DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
 DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
+
+# Minimum UID/GID for non-system users (system users/groups are below this threshold)
+SYSTEM_UID_GID_MAX=999
 
 show_doc_permission_error() {
     local operation=$1
@@ -84,10 +88,10 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             
             # Update group GID if it differs
             if [ "${ASTERISK_GID}" != "${DETECTED_GID}" ]; then
-                # Check if detected GID is a system GID (< 1000) before any modification
-                if [ "${DETECTED_GID}" -lt 1000 ]; then
-                    echo "ERROR: Detected GID ${DETECTED_GID} is a system group (GID < 1000)"
-                    echo "ERROR: Cannot use system GID. Please use a non-system UID/GID (>= 1000) for the mounted volume."
+                # Check if detected GID is a system GID before any modification
+                if [ "${DETECTED_GID}" -le "${SYSTEM_UID_GID_MAX}" ]; then
+                    echo "ERROR: Detected GID ${DETECTED_GID} is a system group (GID <= ${SYSTEM_UID_GID_MAX})"
+                    echo "ERROR: Cannot use system GID. Please use a non-system UID/GID (> ${SYSTEM_UID_GID_MAX}) for the mounted volume."
                     exit 1
                 fi
                 
@@ -96,7 +100,9 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
                     EXISTING_GROUP=$(getent group "${DETECTED_GID}" | cut -d: -f1)
                     echo "WARNING: GID ${DETECTED_GID} already exists as group '${EXISTING_GROUP}', will use it"
                     # Delete old group and use the existing one
-                    groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
+                    if getent group "${ASTERISK_GROUP_NAME}" >/dev/null 2>&1; then
+                        groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
+                    fi
                     ASTERISK_GROUP_NAME="${EXISTING_GROUP}"
                 else
                     groupmod -g "${DETECTED_GID}" "${ASTERISK_GROUP_NAME}"
@@ -106,10 +112,10 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             
             # Update user UID if it differs
             if [ "${ASTERISK_UID}" != "${DETECTED_UID}" ]; then
-                # Check if detected UID is a system UID (< 1000) before any modification
-                if [ "${DETECTED_UID}" -lt 1000 ]; then
-                    echo "ERROR: Detected UID ${DETECTED_UID} is a system user (UID < 1000)"
-                    echo "ERROR: Cannot use system UID. Please use a non-system UID/GID (>= 1000) for the mounted volume."
+                # Check if detected UID is a system UID before any modification
+                if [ "${DETECTED_UID}" -le "${SYSTEM_UID_GID_MAX}" ]; then
+                    echo "ERROR: Detected UID ${DETECTED_UID} is a system user (UID <= ${SYSTEM_UID_GID_MAX})"
+                    echo "ERROR: Cannot use system UID. Please use a non-system UID/GID (> ${SYSTEM_UID_GID_MAX}) for the mounted volume."
                     exit 1
                 fi
                 
@@ -118,7 +124,9 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
                     EXISTING_USER=$(getent passwd "${DETECTED_UID}" | cut -d: -f1)
                     echo "WARNING: UID ${DETECTED_UID} already exists as user '${EXISTING_USER}', will use it"
                     # Delete old user and use the existing one
-                    userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
+                    if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1; then
+                        userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
+                    fi
                     ASTERISK_USER_NAME="${EXISTING_USER}"
                 else
                     # Check if the asterisk user has any running processes before modifying
@@ -126,12 +134,12 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
                         echo "WARNING: User ${ASTERISK_USER_NAME} has running processes"
                         echo "WARNING: Attempting to modify UID anyway. If this fails, restart the container."
                     fi
-                    usermod -u "${DETECTED_UID}" -g "${ASTERISK_GROUP_NAME}" "${ASTERISK_USER_NAME}" 2>/dev/null || {
+                    if ! usermod -u "${DETECTED_UID}" -g "${ASTERISK_GROUP_NAME}" "${ASTERISK_USER_NAME}" 2>&1; then
                         echo "ERROR: Failed to modify user ${ASTERISK_USER_NAME} to UID ${DETECTED_UID}"
                         echo "ERROR: This may happen if the user has running processes or open files."
                         echo "ERROR: Please restart the container."
                         exit 1
-                    }
+                    fi
                 fi
                 ASTERISK_UID="${DETECTED_UID}"
             fi
