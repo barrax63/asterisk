@@ -5,18 +5,17 @@ set -e
 # then drops privileges to the asterisk user when launching Asterisk.
 
 # Configuration
-CONFIG_TARGET_DIR="/etc/asterisk"
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 ASTERISK_ACCOUNT_PRESENT=false
 ASTERISK_UID=""
 ASTERISK_GID=""
 CONFIG_STASH_DIR="/usr/share/asterisk-config"
+CONFIG_TARGET_DIR="/etc/asterisk"
 DATA_STASH_DIR="/usr/share/asterisk-runtime"
 DATA_TARGET_DIR="/var/lib/asterisk"
-DOC_RELATIVE_PATH="documentation"
-DOC_STASH_DIR="/usr/share/asterisk-runtime/${DOC_RELATIVE_PATH}"
-DOC_TARGET_DIR="/var/lib/asterisk/${DOC_RELATIVE_PATH}"
+DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
+DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
 
 # Minimum UID/GID for non-system users (system users/groups are below this threshold)
@@ -240,7 +239,7 @@ fi
 # so that restored pjsip.conf will have environment variables applied
 restore_files_from_stash "${CONFIG_STASH_DIR}" "${CONFIG_TARGET_DIR}" "configuration"
 # Exclude documentation from data restoration as it's handled separately below
-restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "${DOC_RELATIVE_PATH}"
+restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "documentation"
 
 PJSIP_PATH="${CONFIG_TARGET_DIR}/pjsip.conf"
 
