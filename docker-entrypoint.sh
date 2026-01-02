@@ -5,12 +5,15 @@ set -e
 # then drops privileges to the asterisk user when launching Asterisk.
 
 # Configuration
-CONFIG_DIR="/etc/asterisk"
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 ASTERISK_ACCOUNT_PRESENT=false
 ASTERISK_UID=""
 ASTERISK_GID=""
+CONFIG_STASH_DIR="/usr/share/asterisk-config"
+CONFIG_TARGET_DIR="/etc/asterisk"
+DATA_STASH_DIR="/usr/share/asterisk-runtime"
+DATA_TARGET_DIR="/var/lib/asterisk"
 DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
 DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
@@ -28,6 +31,88 @@ show_doc_permission_error() {
     else
         echo "ERROR: Please ensure the host directory has appropriate permissions."
     fi
+}
+
+# Generic function to restore files from stash directory to target directory
+# Only copies files that don't already exist in the target (preserves user customizations)
+# Parameters:
+#   $1 - stash_dir: Source directory containing files to restore
+#   $2 - target_dir: Destination directory where files should be restored
+#   $3 - description: Human-readable description for logging
+#   $4 - exclude_path: Optional relative path to exclude from restoration (e.g., "documentation")
+# Returns:
+#   0 on success, 1 on failure
+restore_files_from_stash() {
+    local stash_dir="$1"
+    local target_dir="$2"
+    local description="$3"
+    local exclude_path="${4:-}"
+    
+    if [ ! -d "${stash_dir}" ]; then
+        echo "Warning: Stash directory ${stash_dir} does not exist, skipping restoration"
+        return 0
+    fi
+    
+    echo "Restoring ${description} from ${stash_dir} to ${target_dir}..."
+    
+    # Create target directory if it doesn't exist
+    if [ ! -d "${target_dir}" ]; then
+        mkdir -p "${target_dir}" 2>/dev/null || {
+            echo "ERROR: Failed to create ${target_dir}"
+            return 1
+        }
+    fi
+    
+    local restored_count=0
+    
+    # Build find command arguments - set up exclusion options if needed
+    local find_args=("${stash_dir}" -mindepth 1)
+    if [ -n "${exclude_path}" ]; then
+        find_args+=(-not -path "${stash_dir}/${exclude_path}" -not -path "${stash_dir}/${exclude_path}/*")
+    fi
+    find_args+=(-print0)
+    
+    # Iterate through all files and directories in the stash (excluding specified paths if any)
+    while IFS= read -r -d '' stash_item; do
+        # Get relative path from stash directory
+        local rel_path="${stash_item#"${stash_dir}"/}"
+        local target_item="${target_dir}/${rel_path}"
+        
+        if [ -d "${stash_item}" ]; then
+            # Create directory if it doesn't exist
+            if [ ! -d "${target_item}" ]; then
+                mkdir -p "${target_item}" 2>/dev/null || {
+                    echo "WARNING: Failed to create directory ${target_item}"
+                    continue
+                }
+            fi
+        elif [ -f "${stash_item}" ]; then
+            # Copy file only if it doesn't already exist (use -f for regular files)
+            if [ ! -f "${target_item}" ]; then
+                cp -a "${stash_item}" "${target_item}" 2>/dev/null || {
+                    echo "WARNING: Failed to restore ${rel_path}"
+                    continue
+                }
+                restored_count=$((restored_count + 1))
+                echo "  - Restored: ${rel_path}"
+            fi
+        fi
+    done < <(find "${find_args[@]}")
+    
+    # Set ownership to asterisk user if account is present
+    if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
+        chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${target_dir}" 2>/dev/null || {
+            echo "WARNING: Failed to set ownership for ${target_dir}"
+        }
+    fi
+    
+    if [ "${restored_count}" -gt 0 ]; then
+        echo "Successfully restored ${restored_count} ${description} file(s)"
+    else
+        echo "No ${description} files needed restoration (all already present)"
+    fi
+    
+    return 0
 }
 
 if [ -n "${CHOWN_PATHS:-}" ]; then
@@ -49,8 +134,8 @@ if ! printf '%s' "${ASTERISK_GROUP_NAME}" | grep -Eq '^[a-z_][a-z0-9_-]{0,31}$';
     ASTERISK_GROUP_NAME="asterisk"
 fi
 
-if [ ! -d "${CONFIG_DIR}" ]; then
-    echo "Config directory ${CONFIG_DIR} not found."
+if [ ! -d "${CONFIG_TARGET_DIR}" ]; then
+    echo "Config directory ${CONFIG_TARGET_DIR} not found."
     exit 1
 fi
 
@@ -149,7 +234,14 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
     fi
 fi
 
-PJSIP_PATH="${CONFIG_DIR}/pjsip.conf"
+# Restore configuration and data files from stash directories
+# This happens AFTER UID/GID adjustment and BEFORE pjsip.conf substitution
+# so that restored pjsip.conf will have environment variables applied
+restore_files_from_stash "${CONFIG_STASH_DIR}" "${CONFIG_TARGET_DIR}" "configuration"
+# Exclude documentation from data restoration as it's handled separately below
+restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "documentation"
+
+PJSIP_PATH="${CONFIG_TARGET_DIR}/pjsip.conf"
 
 # Replace environment variables in pjsip.conf if they are set
 # This must happen BEFORE changing ownership of /etc/asterisk to avoid permission issues
