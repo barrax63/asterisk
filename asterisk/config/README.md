@@ -50,11 +50,11 @@ Dialplan with language selection and a simple main menu. Includes:
 
 To customize the configuration:
 
-1. Edit the files in `asterisk/config/`:
+1. Edit the files in `config/` before building (they seed the `asterisk_config` named volume at `/etc/asterisk`):
    ```bash
-   vi asterisk/config/extensions.conf  # Customize your IVR dialplan
-   vi asterisk/config/pjsip.conf       # Adjust PJSIP settings if needed
-   vi asterisk/config/modules.conf     # Enable/disable optional modules
+   vi config/extensions.conf  # Customize your IVR dialplan
+   vi config/pjsip.conf       # Adjust PJSIP settings if needed
+   vi config/modules.conf     # Enable/disable optional modules
    ```
 
 2. Rebuild the image to bake in your changes:
@@ -94,11 +94,6 @@ docker compose exec asterisk asterisk -rx "core show codecs"
 # Check PJSIP registration
 docker compose exec asterisk asterisk -rx "pjsip show endpoints"
 docker compose exec asterisk asterisk -rx "pjsip show registrations"
-```
-
-Or use the automated verification script:
-```bash
-./verify-ivr-setup.sh
 ```
 
 For comprehensive documentation, see [IVR_BUILD.md](../IVR_BUILD.md).

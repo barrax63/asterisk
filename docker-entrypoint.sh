@@ -17,6 +17,7 @@ ASTERISK_UID=""
 ASTERISK_GID=""
 DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
 DOC_TARGET_DIR="/var/lib/asterisk/documentation"
+XMLDOC_RELOAD_RETRIES=10
 
 escape_for_sed() {
     printf '%s' "$1" | sed 's/[\\/&]/\\&/g'
@@ -218,13 +219,43 @@ if [ "${USE_RUNTIME_CONFIG}" = true ]; then
     set -- "$@" "-C" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
 fi
 
+# Preserve config path for CLI calls when configs are relocated
+CLI_CONFIG_ARGS=()
+if [ "${USE_RUNTIME_CONFIG}" = true ]; then
+    CLI_CONFIG_ARGS=( -C "${ACTIVE_CONFIG_DIR}/asterisk.conf" )
+fi
+
 # If running as root, drop to the configured asterisk user before starting Asterisk
 # Note: Privileges are only dropped for the Asterisk command to ensure proper security.
 # If running other commands (e.g., shell for debugging), they will execute as root.
 # This is intentional to allow system administration tasks when needed.
 if [ "$(id -u)" -eq 0 ] && [ "${CMD_IS_ASTERISK}" = true ]; then
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
-        exec runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@"
+        ASTERISK_PID=""
+        RUN_AS_ASTERISK="runuser -u ${ASTERISK_USER_NAME} -g ${ASTERISK_GROUP_NAME} --"
+        ${RUN_AS_ASTERISK} "$@" &
+        ASTERISK_PID=$!
+        trap 'if [ -n "${ASTERISK_PID}" ]; then kill -TERM "${ASTERISK_PID}"; fi' TERM INT QUIT HUP
+
+        XMLDOC_RELOADED=false
+        for attempt in $(seq 1 "${XMLDOC_RELOAD_RETRIES}"); do
+            if ${RUN_AS_ASTERISK} asterisk "${CLI_CONFIG_ARGS[@]}" -rx "core show version" >/dev/null 2>&1 && \
+               ${RUN_AS_ASTERISK} asterisk "${CLI_CONFIG_ARGS[@]}" -rx "xmldoc reload"; then
+                echo "Applied 'xmldoc reload' during startup."
+                XMLDOC_RELOADED=true
+                sleep 1
+                break
+            fi
+            sleep 1
+        done
+        if [ "${XMLDOC_RELOADED}" = false ]; then
+            echo "Warning: Unable to apply 'xmldoc reload' after ${XMLDOC_RELOAD_RETRIES} attempts."
+        fi
+
+        wait "${ASTERISK_PID}"
+        EXIT_CODE=$?
+        trap - TERM INT QUIT HUP
+        exit "${EXIT_CODE}"
     else
         echo "Error: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; refusing to start as root"
         exit 1
