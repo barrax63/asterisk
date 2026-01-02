@@ -5,6 +5,8 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 ## Features
 
 - **Source Build**: Asterisk 20 is compiled from the official source tarball.
+- **Lean IVR-Only Configuration**: Optimized for PJSIP-based IVR with FritzBox, using only alaw/ulaw/g722 codecs.
+- **Minimal Module Footprint**: Unused channel drivers, codecs, and applications disabled at build-time and runtime.
 - **Debian Bookworm Slim**: Uses a minimal base image to reduce the attack surface and image size.
 - **Persistent Storage via Host Folders**:
   - `./asterisk/config` is mounted to `/etc/asterisk` for easy access to configuration files.
@@ -16,6 +18,8 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 - **Security Baseline**: Designed to work with a hardened `docker-compose.yml` (no-new-privileges, dropped capabilities, AppArmor profile).
 - **Resource Limits**: CPU and memory constraints in `docker-compose.yml` to avoid resource exhaustion.
 
+> **📘 IVR Build Guide**: For detailed information about the lean IVR-only configuration, including build options, runtime safeguards, and verification procedures, see [IVR_BUILD.md](IVR_BUILD.md).
+
 ## Directory Structure
 
 ```text
@@ -23,8 +27,10 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 ├── Dockerfile               # Asterisk container build instructions
 ├── docker-compose.yml       # Service orchestration
 ├── README.md                # This file
+├── IVR_BUILD.md             # IVR-only build & configuration guide
 └── asterisk/
     ├── config/              # Mounted to /etc/asterisk
+    │   └── modules.conf     # Runtime module configuration template
     ├── data/                # Mounted to /var/lib/asterisk (sounds, DBs, runtime data)
     └── logs/                # Mounted to /var/log/asterisk
 ```
@@ -91,6 +97,22 @@ docker compose exec asterisk asterisk -rvvvvv
 
 You should see an Asterisk banner and a CLI prompt.
 
+### 6. Configure IVR-Only Runtime (Optional)
+
+This image is pre-configured for lean IVR-only operation with PJSIP and codecs (alaw/ulaw/g722). To apply the runtime module restrictions:
+
+```bash
+# Copy the modules.conf template to your config directory (if not already present)
+# This provides runtime safeguards against loading unused modules
+cp asterisk/config/modules.conf asterisk/config/modules.conf.ivr
+
+# Review and customize the modules.conf as needed
+# Then restart the container
+docker compose restart asterisk
+```
+
+For detailed configuration options, verification steps, and customization, see **[IVR_BUILD.md](IVR_BUILD.md)**.
+
 ## Accessing Configuration, Data and Logs
 
 - **Configuration files**:  
@@ -148,6 +170,29 @@ To add or update sound files or other data used by Asterisk:
 
 Adjust these ports in `docker-compose.yml` if you use non‑default values, and make sure your firewall configuration matches.
 
+## Verification
+
+After deploying the IVR-only configuration, verify the setup:
+
+### Quick Module Check
+```bash
+# Connect to Asterisk CLI
+docker compose exec asterisk asterisk -rx "module show"
+
+# Check codecs (should only see alaw, ulaw, g722)
+docker compose exec asterisk asterisk -rx "core show codecs"
+
+# Check PJSIP status
+docker compose exec asterisk asterisk -rx "pjsip show endpoints"
+```
+
+### Expected Results
+- **Modules**: Only PJSIP, RTP, IVR apps, and essential resources loaded
+- **Codecs**: alaw, ulaw, g722 only
+- **No legacy**: chan_sip, chan_iax2, app_voicemail, app_queue not loaded
+
+For comprehensive verification procedures and troubleshooting, see **[IVR_BUILD.md](IVR_BUILD.md#verification-steps)**.
+
 ## Security Considerations
 
 1. **Non‑Root User**: Asterisk runs as the `asterisk` user inside the container, and core directories are owned accordingly.
@@ -156,3 +201,6 @@ Adjust these ports in `docker-compose.yml` if you use non‑default values, and 
 4. **No New Privileges**: The security baseline can enforce `no-new-privileges` to block privilege escalation inside the container.
 5. **Volumes and Permissions**: Host folders under `./asterisk` contain configuration, data and logs. Restrict access to these directories to trusted users only.
 6. **Network Exposure**: Only expose SIP/RTP ports to the networks that actually need access (e.g. internal VoIP subnets, VPNs).
+7. **Minimal Attack Surface**: The IVR-only build disables unused channel drivers, codecs, and applications at both build-time and runtime, significantly reducing the attack surface.
+
+> **🔒 Security Note**: This image disables ARI, removes legacy protocols (chan_sip, IAX2), and strips voicemail/conferencing features by default. For additional hardening options, see [IVR_BUILD.md](IVR_BUILD.md#security-hardening).

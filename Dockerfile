@@ -42,7 +42,7 @@ RUN apt-get update && \
     ./configure && \
     # Build menuselect binary/options
     make menuselect.makeopts && \
-    # Disable noisy optional modules
+    # Disable modules for lean IVR-only build (keeping only PJSIP + alaw/ulaw/g722)
     menuselect/menuselect \
       --disable res_config_pgsql \
       --disable res_config_ldap \
@@ -66,6 +66,108 @@ RUN apt-get update && \
       --disable chan_alsa \
       --disable format_ogg_vorbis \
       --disable res_phoneprov \
+      --disable chan_sip \
+      --disable chan_iax2 \
+      --disable chan_mgcp \
+      --disable chan_skinny \
+      --disable chan_unistim \
+      --disable chan_ooh323 \
+      --disable chan_dahdi \
+      --disable chan_mobile \
+      --disable chan_console \
+      --disable chan_misdn \
+      --disable chan_phone \
+      --disable app_voicemail \
+      --disable app_voicemailmain \
+      --disable app_directory \
+      --disable app_minivm \
+      --disable app_confbridge \
+      --disable app_meetme \
+      --disable app_queue \
+      --disable app_agent_pool \
+      --disable app_chanspy \
+      --disable app_parkandannounce \
+      --disable app_parkedcall \
+      --disable res_parking \
+      --disable app_fax \
+      --disable res_fax \
+      --disable res_fax_spandsp \
+      --disable app_celgenuserevent \
+      --disable app_mysql \
+      --disable app_morsecode \
+      --disable app_getcpeid \
+      --disable app_setcallerid \
+      --disable app_adsiprog \
+      --disable app_alarmreceiver \
+      --disable app_amd \
+      --disable app_festival \
+      --disable app_dictate \
+      --disable app_dumpchan \
+      --disable app_externalivr \
+      --disable app_followme \
+      --disable app_forkcdr \
+      --disable app_ices \
+      --disable app_image \
+      --disable app_mixmonitor \
+      --disable app_nbscat \
+      --disable app_page \
+      --disable app_record \
+      --disable app_sms \
+      --disable app_speech_utils \
+      --disable app_test \
+      --disable app_url \
+      --disable app_zapateller \
+      --disable res_ari \
+      --disable res_ari_applications \
+      --disable res_ari_asterisk \
+      --disable res_ari_bridges \
+      --disable res_ari_channels \
+      --disable res_ari_device_states \
+      --disable res_ari_endpoints \
+      --disable res_ari_events \
+      --disable res_ari_mailboxes \
+      --disable res_ari_model \
+      --disable res_ari_playbacks \
+      --disable res_ari_recordings \
+      --disable res_ari_sounds \
+      --disable res_http_websocket \
+      --disable res_stasis \
+      --disable res_stasis_answer \
+      --disable res_stasis_playback \
+      --disable res_stasis_recording \
+      --disable res_stasis_snoop \
+      --disable res_stasis_test \
+      --disable res_hep \
+      --disable res_hep_pjsip \
+      --disable res_hep_rtcp \
+      --disable res_snmp \
+      --disable res_corosync \
+      --disable res_xmpp \
+      --disable chan_motif \
+      --disable res_musiconhold \
+      --disable codec_ilbc \
+      --disable codec_lpc10 \
+      --disable codec_speex \
+      --disable codec_opus \
+      --disable codec_silk \
+      --disable codec_siren7 \
+      --disable codec_siren14 \
+      --disable codec_g726 \
+      --disable codec_adpcm \
+      --disable codec_gsm \
+      --disable codec_resample \
+      --disable codec_dahdi \
+      --disable format_g719 \
+      --disable format_g723 \
+      --disable format_g726 \
+      --disable format_g729 \
+      --disable format_siren7 \
+      --disable format_siren14 \
+      --disable format_sln \
+      --disable format_vox \
+      --disable format_ilbc \
+      --disable format_h263 \
+      --disable format_h264 \
       menuselect.makeopts && \
     # Compile using all available CPU cores
     make -j"$(nproc)" && \
