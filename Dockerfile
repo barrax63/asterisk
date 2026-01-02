@@ -242,9 +242,6 @@ COPY --from=builder /usr/lib/libasterisk*.so* /usr/lib/
 COPY --from=builder /var/lib/asterisk /var/lib/asterisk
 COPY --from=builder /var/spool/asterisk /var/spool/asterisk
 COPY --from=builder /var/log/asterisk /var/log/asterisk
-# Preserve pristine runtime tree (including XML docs) for bind-mount restores
-RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime && \
-    chown -R root:root /usr/share/asterisk-runtime
 
 # Copy configuration files
 COPY config/ /etc/asterisk/
@@ -255,6 +252,10 @@ RUN cp -a /etc/asterisk /usr/share/asterisk-config && \
 
 # Copy data and sound files
 COPY data/ /var/lib/asterisk/
+
+# Preserve pristine runtime tree (including XML docs and data) for bind-mount restores
+RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime && \
+    chown -R root:root /usr/share/asterisk-runtime
 
 # Copy entrypoint script for environment variable substitution
 COPY docker-entrypoint.sh /usr/local/bin/
