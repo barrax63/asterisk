@@ -128,7 +128,7 @@ docker compose build --no-cache
 
 ## Runtime Configuration
 
-Configuration files from `asterisk/config/` are baked into the image and seed the `asterisk_config` named volume at `/etc/asterisk`. Runtime edits can be done via `docker compose exec asterisk`.
+Configuration files from `config/` are baked into the image and seed the `asterisk_config` named volume at `/etc/asterisk`. Runtime edits can be done via `docker compose exec asterisk`.
 
 ### modules.conf Template
 
