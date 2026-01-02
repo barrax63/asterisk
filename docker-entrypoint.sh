@@ -13,6 +13,8 @@ PJSIP_WRITABLE=true
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 ASTERISK_ACCOUNT_PRESENT=false
+DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
+DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 
 escape_for_sed() {
     printf '%s' "$1" | sed 's/[\\/&]/\\&/g'
@@ -66,6 +68,16 @@ if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
     done
 else
     echo "Warning: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; skipping ownership adjustments"
+fi
+
+# Restore XML documentation into bind-mounted /var/lib/asterisk if missing
+if [ -d "${DOC_STASH_DIR}" ]; then
+    if [ ! -d "${DOC_TARGET_DIR}" ] || [ -z "$(ls -A "${DOC_TARGET_DIR}" 2>/dev/null)" ]; then
+        echo "Restoring Asterisk documentation into ${DOC_TARGET_DIR}..."
+        mkdir -p "${DOC_TARGET_DIR}"
+        cp -a "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}/"
+        chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}"
+    fi
 fi
 
 # If the mounted config directory isn't writable (common with bind mounts),

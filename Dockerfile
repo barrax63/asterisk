@@ -241,6 +241,8 @@ COPY --from=builder /usr/lib/libasterisk*.so* /usr/lib/
 COPY --from=builder /var/lib/asterisk /var/lib/asterisk
 COPY --from=builder /var/spool/asterisk /var/spool/asterisk
 COPY --from=builder /var/log/asterisk /var/log/asterisk
+# Preserve pristine runtime tree (including XML docs) for bind-mount restores
+RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime
 
 # Copy lean IVR-only configuration files
 COPY asterisk/config/asterisk.conf /etc/asterisk/asterisk.conf
