@@ -71,7 +71,7 @@ After the first container start, you will see Asterisk’s sample configuration 
 From within the project directory:
 
 ```bash
-# Build the image
+# Build the image (this can take up to 10 minutes since Asterisk is built from source)
 docker compose build
 
 # Start the container in the background

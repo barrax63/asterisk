@@ -98,6 +98,7 @@ RUN apt-get update && \
 # - Logs: /var/log/asterisk
 COPY --from=builder /usr/sbin/asterisk /usr/sbin/asterisk
 COPY --from=builder /usr/lib/asterisk /usr/lib/asterisk
+COPY --from=builder /usr/lib/libasterisk*.so* /usr/lib/
 COPY --from=builder /etc/asterisk /etc/asterisk
 COPY --from=builder /var/lib/asterisk /var/lib/asterisk
 COPY --from=builder /var/spool/asterisk /var/spool/asterisk
