@@ -84,6 +84,7 @@ RUN apt-get update && \
         libjansson-dev \
         libssl-dev \
         libedit-dev \
+        libxslt1.1 \
         ca-certificates \
         iproute2 \
         procps && \
