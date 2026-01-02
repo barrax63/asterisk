@@ -242,7 +242,8 @@ COPY --from=builder /var/lib/asterisk /var/lib/asterisk
 COPY --from=builder /var/spool/asterisk /var/spool/asterisk
 COPY --from=builder /var/log/asterisk /var/log/asterisk
 # Preserve pristine runtime tree (including XML docs) for bind-mount restores
-RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime
+RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime && \
+    chown -R root:root /usr/share/asterisk-runtime
 
 # Copy lean IVR-only configuration files
 COPY asterisk/config/asterisk.conf /etc/asterisk/asterisk.conf
@@ -301,9 +302,8 @@ WORKDIR /var/lib/asterisk
 # SIP signalling and RTP ports
 EXPOSE 5060/tcp 5060/udp 10000-20000/udp
 
-# Run as non-root asterisk user
-USER ${ASTERISK_USER}
-
+# Entrypoint runs as root and drops privileges to asterisk user when launching Asterisk
+# This allows the entrypoint to handle bind-mount permissions and documentation restoration
 # Use entrypoint script to handle environment variable substitution
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["asterisk", "-f", "-vvv"]
