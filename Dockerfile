@@ -225,6 +225,7 @@ RUN apt-get update && \
         ca-certificates \
         iproute2 \
         procps \
+        rsync \
         gosu && \
     ldconfig && \
     rm -rf /var/lib/apt/lists/*
