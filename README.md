@@ -8,6 +8,7 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 - **Lean IVR-Only Configuration**: Optimized for PJSIP-based IVR with FritzBox, using only alaw/ulaw/g722 codecs.
 - **Minimal Module Footprint**: Unused channel drivers, codecs, and applications disabled at build-time and runtime.
 - **Debian Bookworm Slim**: Uses a minimal base image to reduce the attack surface and image size.
+- **Sample IVR Dialplan**: Default dialplan offers language selection and records calls with `MixMonitor` to `/opt/asterisk/recordings/${UNIQUEID}.wav`.
 - **Persistent Storage via Host Folders**:
   - `./asterisk/config` is mounted to `/etc/asterisk` for easy access to configuration files.
   - `./asterisk/data` is mounted to `/var/lib/asterisk` for easy access to sound files and other data.
@@ -158,6 +159,9 @@ For detailed configuration options, verification steps, and customization, see *
 
 - **Log files**:  
   Asterisk logs from `/var/log/asterisk` appear under `./asterisk/logs` on the host, making troubleshooting and log analysis straightforward.
+
+- **Call recordings (MixMonitor)**:  
+  The default dialplan records calls to `/opt/asterisk/recordings/${UNIQUEID}.wav`. This path is created in the image and owned by the `asterisk` user and mounted to `./asterisk/recordings`.
 
 ## Maintenance
 

@@ -35,6 +35,8 @@ services:
       - ./asterisk/config:/etc/asterisk
       # Voicemail, SQLite DBs, runtime data
       - ./asterisk/data:/var/lib/asterisk
+      # MixMonitor Recordings
+      - ./asterisk/recordings:/opt/asterisk/recordings
       # Log files
       - ./asterisk/logs:/var/log/asterisk
     cap_add:

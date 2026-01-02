@@ -75,10 +75,7 @@ RUN apt-get update && \
       --disable chan_dahdi \
       --disable chan_mobile \
       --disable chan_console \
-      --disable chan_misdn \
-      --disable chan_phone \
       --disable app_voicemail \
-      --disable app_voicemailmain \
       --disable app_directory \
       --disable app_minivm \
       --disable app_confbridge \
@@ -86,17 +83,12 @@ RUN apt-get update && \
       --disable app_queue \
       --disable app_agent_pool \
       --disable app_chanspy \
-      --disable app_parkandannounce \
-      --disable app_parkedcall \
       --disable res_parking \
-      --disable app_fax \
       --disable res_fax \
       --disable res_fax_spandsp \
       --disable app_celgenuserevent \
-      --disable app_mysql \
       --disable app_morsecode \
       --disable app_getcpeid \
-      --disable app_setcallerid \
       --disable app_adsiprog \
       --disable app_alarmreceiver \
       --disable app_amd \
@@ -106,16 +98,11 @@ RUN apt-get update && \
       --disable app_externalivr \
       --disable app_followme \
       --disable app_forkcdr \
-      --disable app_ices \
-      --disable app_image \
-      --disable app_mixmonitor \
-      --disable app_nbscat \
       --disable app_page \
       --disable app_record \
       --disable app_sms \
       --disable app_speech_utils \
       --disable app_test \
-      --disable app_url \
       --disable app_zapateller \
       --disable res_ari \
       --disable res_ari_applications \
@@ -287,6 +274,10 @@ RUN set -eux; \
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /usr/lib/asterisk && \
     \
+    # Prepare call recording path used by the dialplan
+    mkdir -p /opt/asterisk/recordings && \
+    chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /opt/asterisk && \
+    \
     # Enable runuser/rungroup in /etc/asterisk/asterisk.conf
     sed -i 's/;runuser/runuser/g'   /etc/asterisk/asterisk.conf && \
     sed -i 's/;rungroup/rungroup/g' /etc/asterisk/asterisk.conf && \
@@ -310,7 +301,7 @@ RUN set -eux; \
 #   ./asterisk/config -> /etc/asterisk
 #   ./asterisk/data   -> /var/lib/asterisk
 #   ./asterisk/logs   -> /var/log/asterisk
-VOLUME ["/etc/asterisk", "/var/lib/asterisk", "/var/log/asterisk", "/var/spool/asterisk"]
+VOLUME ["/opt/asterisk", "/etc/asterisk", "/var/lib/asterisk", "/var/log/asterisk", "/var/spool/asterisk"]
 
 # Work inside Asterisk data directory
 WORKDIR /var/lib/asterisk
