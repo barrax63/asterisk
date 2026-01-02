@@ -66,8 +66,7 @@ restore_files_from_stash() {
     
     local restored_count=0
     
-    # Build find command - set up exclusion options if needed
-    local find_cmd="find"
+    # Build find command arguments - set up exclusion options if needed
     local find_args=("${stash_dir}" -mindepth 1)
     if [ -n "${exclude_path}" ]; then
         find_args+=(-not -path "${stash_dir}/${exclude_path}" -not -path "${stash_dir}/${exclude_path}/*")
@@ -99,7 +98,8 @@ restore_files_from_stash() {
                 echo "  - Restored: ${rel_path}"
             fi
         fi
-    done < <("${find_cmd}" "${find_args[@]}")
+    done < <(find "${find_args[@]}")
+
     
     # Set ownership to asterisk user if account is present
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
