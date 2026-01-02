@@ -29,13 +29,13 @@ fi
 if [ "${CONFIG_WRITABLE}" = false ]; then
     echo "Config directory not writable, using runtime copy at ${RUNTIME_CONFIG_DIR}..."
     ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
-    mkdir -p "${ACTIVE_CONFIG_DIR}"
+    mkdir -p "${ACTIVE_CONFIG_DIR}" || { echo "Failed to create ${ACTIVE_CONFIG_DIR}"; exit 1; }
     # Copy current config, following symlinks (-L) and copying contents of the directory (${CONFIG_DIR}/.)
     cp -rL "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        ESCAPED_CONFIG_DIR=$(printf '%s' "${ACTIVE_CONFIG_DIR}" | sed 's/[\\/|&]/\\&/g')
+        ESCAPED_CONFIG_DIR=$(printf '%s' "${ACTIVE_CONFIG_DIR}" | sed 's/[\\&|]/\\&/g')
         sed -i "s|^astetcdir[[:space:]]*=>[[:space:]]*.*|astetcdir => ${ESCAPED_CONFIG_DIR}|" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
     fi
 fi
@@ -91,11 +91,9 @@ fi
 USE_RUNTIME_CONFIG=false
 CMD_IS_ASTERISK=false
 
-if [ "$#" -ge 1 ]; then
-    case "$1" in
-        asterisk|*/asterisk) CMD_IS_ASTERISK=true ;;
-    esac
-fi
+case "$1" in
+    asterisk|*/asterisk) CMD_IS_ASTERISK=true ;;
+esac
 
 if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ "${CMD_IS_ASTERISK}" = true ]; then
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
