@@ -12,6 +12,7 @@ PJSIP_ORIGINAL="${CONFIG_DIR}/pjsip.conf"
 PJSIP_WRITABLE=true
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
+ASTERISK_ACCOUNT_PRESENT=false
 
 escape_for_sed() {
     printf '%s' "$1" | sed 's/[\\/&]/\\&/g'
@@ -41,8 +42,12 @@ if [ ! -d "${CONFIG_DIR}" ]; then
     exit 1
 fi
 
-# Ensure mounted directories are owned by the asterisk user on startup
 if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1 && getent group "${ASTERISK_GROUP_NAME}" >/dev/null 2>&1; then
+    ASTERISK_ACCOUNT_PRESENT=true
+fi
+
+# Ensure mounted directories are owned by the asterisk user on startup
+if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
     for target in "${CHOWN_TARGETS[@]}"; do
         case "${target}" in
             /etc/asterisk*|/var/lib/asterisk*|/var/log/asterisk*|/var/spool/asterisk*|/opt/asterisk*)
@@ -163,10 +168,11 @@ fi
 
 # If running as root, drop to the configured asterisk user before starting
 if [ "$(id -u)" -eq 0 ] && [ "${CMD_IS_ASTERISK}" = true ]; then
-    if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1 && getent group "${ASTERISK_GROUP_NAME}" >/dev/null 2>&1; then
+    if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
         exec runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@"
     else
-        echo "Warning: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; running as current user"
+        echo "Error: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; refusing to start as root"
+        exit 1
     fi
 fi
 
