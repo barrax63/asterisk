@@ -85,21 +85,17 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             # Update group GID if it differs
             if [ "${ASTERISK_GID}" != "${DETECTED_GID}" ]; then
                 if getent group "${DETECTED_GID}" >/dev/null 2>&1; then
-                    # GID already exists - check if it's a system group we shouldn't reuse
+                    # GID already exists - check if it's a system group (typically GID < 1000)
                     EXISTING_GROUP=$(getent group "${DETECTED_GID}" | cut -d: -f1)
-                    case "${EXISTING_GROUP}" in
-                        root|daemon|sys|adm|tty|disk|lp|mail|news|uucp|man|proxy|kmem|dialout|fax|voice|cdrom|floppy|tape|sudo|audio|dip|www-data|backup|operator|list|irc|src|gnats|shadow|utmp|video|sasl|plugdev|staff|games|users|nogroup)
-                            echo "ERROR: Detected GID ${DETECTED_GID} belongs to system group '${EXISTING_GROUP}'"
-                            echo "ERROR: Cannot safely reuse system group. Please use a non-system UID/GID for the mounted volume."
-                            exit 1
-                            ;;
-                        *)
-                            echo "WARNING: GID ${DETECTED_GID} already exists as group '${EXISTING_GROUP}', will use it"
-                            # Delete old group and use the existing one
-                            groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
-                            ASTERISK_GROUP_NAME="${EXISTING_GROUP}"
-                            ;;
-                    esac
+                    if [ "${DETECTED_GID}" -lt 1000 ]; then
+                        echo "ERROR: Detected GID ${DETECTED_GID} (${EXISTING_GROUP}) is a system group (GID < 1000)"
+                        echo "ERROR: Cannot safely reuse system group. Please use a non-system UID/GID (>= 1000) for the mounted volume."
+                        exit 1
+                    fi
+                    echo "WARNING: GID ${DETECTED_GID} already exists as group '${EXISTING_GROUP}', will use it"
+                    # Delete old group and use the existing one
+                    groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
+                    ASTERISK_GROUP_NAME="${EXISTING_GROUP}"
                 else
                     groupmod -g "${DETECTED_GID}" "${ASTERISK_GROUP_NAME}"
                 fi
@@ -109,23 +105,29 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             # Update user UID if it differs
             if [ "${ASTERISK_UID}" != "${DETECTED_UID}" ]; then
                 if getent passwd "${DETECTED_UID}" >/dev/null 2>&1; then
-                    # UID already exists - check if it's a system user we shouldn't reuse
+                    # UID already exists - check if it's a system user (typically UID < 1000)
                     EXISTING_USER=$(getent passwd "${DETECTED_UID}" | cut -d: -f1)
-                    case "${EXISTING_USER}" in
-                        root|daemon|bin|sys|sync|games|man|lp|mail|news|uucp|proxy|www-data|backup|list|irc|gnats|nobody|systemd-network|systemd-resolve|messagebus|syslog|_apt)
-                            echo "ERROR: Detected UID ${DETECTED_UID} belongs to system user '${EXISTING_USER}'"
-                            echo "ERROR: Cannot safely reuse system user. Please use a non-system UID/GID for the mounted volume."
-                            exit 1
-                            ;;
-                        *)
-                            echo "WARNING: UID ${DETECTED_UID} already exists as user '${EXISTING_USER}', will use it"
-                            # Delete old user and use the existing one
-                            userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
-                            ASTERISK_USER_NAME="${EXISTING_USER}"
-                            ;;
-                    esac
+                    if [ "${DETECTED_UID}" -lt 1000 ]; then
+                        echo "ERROR: Detected UID ${DETECTED_UID} (${EXISTING_USER}) is a system user (UID < 1000)"
+                        echo "ERROR: Cannot safely reuse system user. Please use a non-system UID/GID (>= 1000) for the mounted volume."
+                        exit 1
+                    fi
+                    echo "WARNING: UID ${DETECTED_UID} already exists as user '${EXISTING_USER}', will use it"
+                    # Delete old user and use the existing one
+                    userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
+                    ASTERISK_USER_NAME="${EXISTING_USER}"
                 else
-                    usermod -u "${DETECTED_UID}" -g "${ASTERISK_GROUP_NAME}" "${ASTERISK_USER_NAME}"
+                    # Check if the asterisk user has any running processes before modifying
+                    if pgrep -u "${ASTERISK_USER_NAME}" >/dev/null 2>&1; then
+                        echo "WARNING: User ${ASTERISK_USER_NAME} has running processes"
+                        echo "WARNING: Attempting to modify UID anyway. If this fails, restart the container."
+                    fi
+                    usermod -u "${DETECTED_UID}" -g "${ASTERISK_GROUP_NAME}" "${ASTERISK_USER_NAME}" 2>/dev/null || {
+                        echo "ERROR: Failed to modify user ${ASTERISK_USER_NAME} to UID ${DETECTED_UID}"
+                        echo "ERROR: This may happen if the user has running processes or open files."
+                        echo "ERROR: Please restart the container."
+                        exit 1
+                    }
                 fi
                 ASTERISK_UID="${DETECTED_UID}"
             fi
