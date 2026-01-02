@@ -7,14 +7,24 @@ set -e
 CONFIG_DIR="/etc/asterisk"
 RUNTIME_CONFIG_DIR="/tmp/asterisk-config"
 ACTIVE_CONFIG_DIR="${CONFIG_DIR}"
+CONFIG_WRITABLE=true
+PJSIP_ORIGINAL="${CONFIG_DIR}/pjsip.conf"
 
 # If the mounted config directory isn't writable (common with bind mounts),
 # work on a runtime copy we can modify.
-if [ ! -w "${CONFIG_DIR}" ] || { [ -f "${CONFIG_DIR}/pjsip.conf" ] && [ ! -w "${CONFIG_DIR}/pjsip.conf" ]; }; then
+if [ ! -w "${CONFIG_DIR}" ]; then
+    CONFIG_WRITABLE=false
+fi
+
+if [ -f "${PJSIP_ORIGINAL}" ] && [ ! -w "${PJSIP_ORIGINAL}" ]; then
+    CONFIG_WRITABLE=false
+fi
+
+if [ "${CONFIG_WRITABLE}" = false ]; then
     echo "Config directory not writable, using runtime copy at ${RUNTIME_CONFIG_DIR}..."
     ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
     mkdir -p "${ACTIVE_CONFIG_DIR}"
-    cp -RL "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
+    cp -rL "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
@@ -70,7 +80,7 @@ if [ -f "${PJSIP_PATH}" ]; then
 fi
 
 # If we had to relocate configs, ensure Asterisk reads from the runtime copy
-if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ "$#" -ge 1 ] && [ "$1" = "asterisk" ]; then
+if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ] && [ "$#" -ge 1 ] && [ "$1" = "asterisk" ]; then
     set -- "$@" "-C" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
 fi
 
