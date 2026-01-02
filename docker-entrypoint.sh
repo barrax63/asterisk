@@ -249,11 +249,18 @@ if [ -f "${PJSIP_PATH}" ]; then
     
     # Move the modified file back
     # Use cat instead of mv to avoid cross-device/permission issues
-    cat "$TEMP_PJSIP" > "${PJSIP_PATH}"
+    if ! cat "$TEMP_PJSIP" > "${PJSIP_PATH}"; then
+        echo "ERROR: Failed to write modified configuration to ${PJSIP_PATH}"
+        echo "ERROR: Temporary file preserved at: $TEMP_PJSIP"
+        exit 1
+    fi
     rm -f "$TEMP_PJSIP"
     # Ensure proper ownership after modification
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
-        chown "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${PJSIP_PATH}"
+        if ! chown "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${PJSIP_PATH}"; then
+            echo "WARNING: Failed to set ownership for ${PJSIP_PATH}"
+            echo "WARNING: Configuration file was updated but ownership adjustment failed."
+        fi
     fi
     echo "pjsip.conf configuration complete."
 fi
