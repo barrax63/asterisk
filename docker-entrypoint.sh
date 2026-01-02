@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# This script runs as the asterisk user, so we need to handle file modifications
-# The config files are already owned by asterisk user from Dockerfile
+# This script runs as root to handle bind-mount permissions and documentation restoration,
+# then drops privileges to the asterisk user when launching Asterisk.
 
 CONFIG_DIR="/etc/asterisk"
 RUNTIME_CONFIG_DIR="/tmp/asterisk-config"
@@ -218,7 +218,10 @@ if [ "${USE_RUNTIME_CONFIG}" = true ]; then
     set -- "$@" "-C" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
 fi
 
-# If running as root, drop to the configured asterisk user before starting
+# If running as root, drop to the configured asterisk user before starting Asterisk
+# Note: Privileges are only dropped for the Asterisk command to ensure proper security.
+# If running other commands (e.g., shell for debugging), they will execute as root.
+# This is intentional to allow system administration tasks when needed.
 if [ "$(id -u)" -eq 0 ] && [ "${CMD_IS_ASTERISK}" = true ]; then
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
         exec runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@"
