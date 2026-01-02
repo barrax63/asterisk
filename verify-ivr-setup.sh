@@ -9,6 +9,8 @@
 #
 
 set -e
+set -u
+set -o pipefail
 
 # Colors for output
 RED='\033[0;31m'
@@ -45,7 +47,7 @@ echo
 
 # Check loaded codecs
 echo -e "${BLUE}[3/7] Checking loaded codecs...${NC}"
-# More robust codec detection - look for lines with codec names, extract second field
+# Get codec output once and reuse it
 CODEC_OUTPUT=$(docker compose exec -T asterisk asterisk -rx "core show codecs" 2>/dev/null || echo "")
 CODECS=""
 if [ -n "$CODEC_OUTPUT" ]; then
@@ -60,8 +62,8 @@ if [ -z "$CODECS" ]; then
     CODEC_COUNT=0
 else
     echo "$CODECS"
-    # Count non-empty lines properly
-    CODEC_COUNT=$(echo "$CODECS" | sed '/^$/d' | wc -l)
+    # Count non-empty lines properly using grep
+    CODEC_COUNT=$(echo "$CODECS" | grep -c . || echo "0")
 fi
 
 if [ "$CODEC_COUNT" -eq 3 ] && echo "$CODECS" | grep -q "alaw" && echo "$CODECS" | grep -q "ulaw" && echo "$CODECS" | grep -q "g722"; then
@@ -70,8 +72,8 @@ else
     echo -e "${YELLOW}⚠ Codec configuration may differ from expected (found $CODEC_COUNT codecs)${NC}"
 fi
 
-# Check for unwanted codecs
-UNWANTED=$(docker compose exec -T asterisk asterisk -rx "core show codecs" 2>/dev/null | grep -E "(opus|speex|ilbc|g726|gsm)" || true)
+# Check for unwanted codecs (reuse CODEC_OUTPUT)
+UNWANTED=$(echo "$CODEC_OUTPUT" | grep -E "(opus|speex|ilbc|g726|gsm)" || true)
 if [ -z "$UNWANTED" ]; then
     echo -e "${GREEN}✓ No unwanted codecs detected${NC}"
 else
