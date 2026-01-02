@@ -76,6 +76,9 @@ cp .env.example .env
 Edit `.env` and set your FritzBox configuration:
 
 ```bash
+# FritzBox SIP Registration User
+ASTERISK_USER=asterisk
+
 # FritzBox SIP Registration Password
 ASTERISK_PASSWORD=your_secret_password_here
 
@@ -115,8 +118,6 @@ docker compose logs -f asterisk
 The entrypoint script will automatically configure pjsip.conf with your environment variables from `.env`.
 
 ### 6. Connect to the Asterisk CLI
-
-### 5. Connect to the Asterisk CLI
 
 To attach to the Asterisk CLI for debugging and administration:
 
