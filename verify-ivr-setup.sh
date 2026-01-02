@@ -45,8 +45,13 @@ echo
 
 # Check loaded codecs
 echo -e "${BLUE}[3/7] Checking loaded codecs...${NC}"
-CODECS=$(docker compose exec -T asterisk asterisk -rx "core show codecs" 2>/dev/null | grep -E "(alaw|ulaw|g722)" | awk '{print $2}' | sort | uniq | grep -v "^$")
-EXPECTED_CODECS="alaw g722 ulaw"
+# More robust codec detection - look for lines with codec names, extract second field
+CODEC_OUTPUT=$(docker compose exec -T asterisk asterisk -rx "core show codecs" 2>/dev/null || echo "")
+CODECS=""
+if [ -n "$CODEC_OUTPUT" ]; then
+    # Extract codec names more reliably by looking for known codec patterns
+    CODECS=$(echo "$CODEC_OUTPUT" | grep -oE "\b(alaw|ulaw|g722)\b" | sort | uniq)
+fi
 
 echo "Expected codecs: alaw, ulaw, g722"
 echo "Loaded codecs:"
@@ -55,7 +60,8 @@ if [ -z "$CODECS" ]; then
     CODEC_COUNT=0
 else
     echo "$CODECS"
-    CODEC_COUNT=$(echo "$CODECS" | grep -c .)
+    # Count non-empty lines properly
+    CODEC_COUNT=$(echo "$CODECS" | sed '/^$/d' | wc -l)
 fi
 
 if [ "$CODEC_COUNT" -eq 3 ] && echo "$CODECS" | grep -q "alaw" && echo "$CODECS" | grep -q "ulaw" && echo "$CODECS" | grep -q "g722"; then
@@ -74,12 +80,12 @@ else
 fi
 echo
 
-# Check PJSIP modules
+# Check PJSIP modules (combined into single call for efficiency)
 echo -e "${BLUE}[4/7] Checking PJSIP modules...${NC}"
-PJSIP_MODULES=$(docker compose exec -T asterisk asterisk -rx "module show like pjsip" 2>/dev/null | grep -c "res_pjsip" || echo "0")
-# Check for essential PJSIP modules (more robust than just count)
-PJSIP_CORE=$(docker compose exec -T asterisk asterisk -rx "module show like res_pjsip.so" 2>/dev/null | grep -c "res_pjsip.so" || echo "0")
-PJSIP_SESSION=$(docker compose exec -T asterisk asterisk -rx "module show like res_pjsip_session" 2>/dev/null | grep -c "res_pjsip_session" || echo "0")
+PJSIP_OUTPUT=$(docker compose exec -T asterisk asterisk -rx "module show like pjsip" 2>/dev/null || echo "")
+PJSIP_MODULES=$(echo "$PJSIP_OUTPUT" | grep -c "res_pjsip" || echo "0")
+PJSIP_CORE=$(echo "$PJSIP_OUTPUT" | grep -c "res_pjsip.so" || echo "0")
+PJSIP_SESSION=$(echo "$PJSIP_OUTPUT" | grep -c "res_pjsip_session" || echo "0")
 
 if [ "$PJSIP_CORE" -ge 1 ] && [ "$PJSIP_SESSION" -ge 1 ] && [ "$PJSIP_MODULES" -ge 5 ]; then
     echo -e "${GREEN}✓ PJSIP modules loaded ($PJSIP_MODULES modules, including core and session)${NC}"
