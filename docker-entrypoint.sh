@@ -99,7 +99,6 @@ restore_files_from_stash() {
             fi
         fi
     done < <(find "${find_args[@]}")
-
     
     # Set ownership to asterisk user if account is present
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
