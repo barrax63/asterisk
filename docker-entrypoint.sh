@@ -12,14 +12,19 @@ PJSIP_ORIGINAL="${CONFIG_DIR}/pjsip.conf"
 PJSIP_WRITABLE=true
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
-CHOWN_TARGETS=(/etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk /opt/asterisk)
 
-if ! printf '%s' "${ASTERISK_USER_NAME}" | grep -Eq '^[A-Za-z0-9_-]+$'; then
+if [ -n "${CHOWN_PATHS:-}" ]; then
+    read -r -a CHOWN_TARGETS <<<"${CHOWN_PATHS}"
+else
+    CHOWN_TARGETS=(/etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk /opt/asterisk)
+fi
+
+if ! printf '%s' "${ASTERISK_USER_NAME}" | grep -Eq '^[a-z_][a-z0-9_.-]*$'; then
     echo "Invalid ASTERISK_USER '${ASTERISK_USER_NAME}', defaulting to 'asterisk'"
     ASTERISK_USER_NAME="asterisk"
 fi
 
-if ! printf '%s' "${ASTERISK_GROUP_NAME}" | grep -Eq '^[A-Za-z0-9_-]+$'; then
+if ! printf '%s' "${ASTERISK_GROUP_NAME}" | grep -Eq '^[a-z_][a-z0-9_.-]*$'; then
     echo "Invalid ASTERISK_GROUP '${ASTERISK_GROUP_NAME}', defaulting to 'asterisk'"
     ASTERISK_GROUP_NAME="asterisk"
 fi
