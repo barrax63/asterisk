@@ -5,7 +5,7 @@ set -e
 # then drops privileges to the asterisk user when launching Asterisk.
 
 # Configuration
-CONFIG_DIR="/etc/asterisk"
+CONFIG_TARGET_DIR="/etc/asterisk"
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 ASTERISK_ACCOUNT_PRESENT=false
@@ -135,8 +135,8 @@ if ! printf '%s' "${ASTERISK_GROUP_NAME}" | grep -Eq '^[a-z_][a-z0-9_-]{0,31}$';
     ASTERISK_GROUP_NAME="asterisk"
 fi
 
-if [ ! -d "${CONFIG_DIR}" ]; then
-    echo "Config directory ${CONFIG_DIR} not found."
+if [ ! -d "${CONFIG_TARGET_DIR}" ]; then
+    echo "Config directory ${CONFIG_TARGET_DIR} not found."
     exit 1
 fi
 
@@ -238,11 +238,11 @@ fi
 # Restore configuration and data files from stash directories
 # This happens AFTER UID/GID adjustment and BEFORE pjsip.conf substitution
 # so that restored pjsip.conf will have environment variables applied
-restore_files_from_stash "${CONFIG_STASH_DIR}" "${CONFIG_DIR}" "configuration"
+restore_files_from_stash "${CONFIG_STASH_DIR}" "${CONFIG_TARGET_DIR}" "configuration"
 # Exclude documentation from data restoration as it's handled separately below
 restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "${DOC_RELATIVE_PATH}"
 
-PJSIP_PATH="${CONFIG_DIR}/pjsip.conf"
+PJSIP_PATH="${CONFIG_TARGET_DIR}/pjsip.conf"
 
 # Replace environment variables in pjsip.conf if they are set
 # This must happen BEFORE changing ownership of /etc/asterisk to avoid permission issues
