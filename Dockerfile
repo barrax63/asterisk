@@ -118,12 +118,6 @@ RUN apt-get update && \
       --disable res_ari_recordings \
       --disable res_ari_sounds \
       --disable res_http_websocket \
-      --disable res_stasis \
-      --disable res_stasis_answer \
-      --disable res_stasis_playback \
-      --disable res_stasis_recording \
-      --disable res_stasis_snoop \
-      --disable res_stasis_test \
       --disable res_hep \
       --disable res_hep_pjsip \
       --disable res_hep_rtcp \
@@ -261,9 +255,9 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Create a dedicated asterisk user/group and fix permissions,
 # and configure the history file location.
 RUN set -eux; \
-    # Create group and user (system user, no shell, home at /var/lib/asterisk)
-    groupadd -r "${ASTERISK_GROUP}" && \
-    useradd  -r -d /var/lib/asterisk -g "${ASTERISK_GROUP}" "${ASTERISK_USER}" && \
+    # Create group and user (fixed UID/GID 1000, home at /var/lib/asterisk)
+    groupadd -r -g 1000 "${ASTERISK_GROUP}" && \
+    useradd  -r -u 1000 -d /var/lib/asterisk -g "${ASTERISK_GROUP}" "${ASTERISK_USER}" && \
     \
     # Ensure directories exist (COPY above should have created them, but we
     # re-create idempotently in case of future changes)
