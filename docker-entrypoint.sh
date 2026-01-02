@@ -71,6 +71,7 @@ else
 fi
 
 # Restore XML documentation into bind-mounted /var/lib/asterisk if missing
+# This must run as root to handle bind-mounted volumes with proper permissions
 DOC_TARGET_POPULATED=false
 if [ -d "${DOC_TARGET_DIR}" ] && [ "$(find "${DOC_TARGET_DIR}" -mindepth 1 -maxdepth 1 -print 2>/dev/null | wc -l)" -gt 0 ]; then
     DOC_TARGET_POPULATED=true
@@ -78,13 +79,34 @@ fi
 
 if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     echo "Restoring Asterisk documentation into ${DOC_TARGET_DIR}..."
-    mkdir -p "${DOC_TARGET_DIR}"
-    cp -a "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}"
+    
+    # Attempt to create directory and restore documentation
+    if ! mkdir -p "${DOC_TARGET_DIR}" 2>/dev/null; then
+        echo "ERROR: Failed to create ${DOC_TARGET_DIR}"
+        echo "ERROR: The target directory is not writable. This usually happens with bind-mounted volumes."
+        echo "ERROR: Please ensure the host directory has appropriate permissions or is owned by UID 1000."
+        echo "ERROR: For example: sudo chown -R 1000:1000 ./asterisk/data"
+        exit 1
+    fi
+    
+    if ! cp -a "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}" 2>/dev/null; then
+        echo "ERROR: Failed to copy documentation to ${DOC_TARGET_DIR}"
+        echo "ERROR: The target directory is not writable. This usually happens with bind-mounted volumes."
+        echo "ERROR: Please ensure the host directory has appropriate permissions."
+        exit 1
+    fi
+    
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
-        chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}"
+        if ! chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}" 2>/dev/null; then
+            echo "WARNING: Failed to set ownership for ${DOC_TARGET_DIR}"
+            echo "WARNING: Documentation was restored but ownership could not be adjusted."
+            echo "WARNING: Asterisk may have issues accessing the documentation."
+        fi
     else
         echo "Warning: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; skipping documentation ownership adjustments"
     fi
+    
+    echo "Documentation successfully restored to ${DOC_TARGET_DIR}"
 fi
 
 # If the mounted config directory isn't writable (common with bind mounts),
