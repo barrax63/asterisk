@@ -84,14 +84,16 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             
             # Update group GID if it differs
             if [ "${ASTERISK_GID}" != "${DETECTED_GID}" ]; then
+                # Check if detected GID is a system GID (< 1000) before any modification
+                if [ "${DETECTED_GID}" -lt 1000 ]; then
+                    echo "ERROR: Detected GID ${DETECTED_GID} is a system group (GID < 1000)"
+                    echo "ERROR: Cannot use system GID. Please use a non-system UID/GID (>= 1000) for the mounted volume."
+                    exit 1
+                fi
+                
                 if getent group "${DETECTED_GID}" >/dev/null 2>&1; then
-                    # GID already exists - check if it's a system group (typically GID < 1000)
+                    # GID already exists
                     EXISTING_GROUP=$(getent group "${DETECTED_GID}" | cut -d: -f1)
-                    if [ "${DETECTED_GID}" -lt 1000 ]; then
-                        echo "ERROR: Detected GID ${DETECTED_GID} (${EXISTING_GROUP}) is a system group (GID < 1000)"
-                        echo "ERROR: Cannot safely reuse system group. Please use a non-system UID/GID (>= 1000) for the mounted volume."
-                        exit 1
-                    fi
                     echo "WARNING: GID ${DETECTED_GID} already exists as group '${EXISTING_GROUP}', will use it"
                     # Delete old group and use the existing one
                     groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
@@ -104,14 +106,16 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
             
             # Update user UID if it differs
             if [ "${ASTERISK_UID}" != "${DETECTED_UID}" ]; then
+                # Check if detected UID is a system UID (< 1000) before any modification
+                if [ "${DETECTED_UID}" -lt 1000 ]; then
+                    echo "ERROR: Detected UID ${DETECTED_UID} is a system user (UID < 1000)"
+                    echo "ERROR: Cannot use system UID. Please use a non-system UID/GID (>= 1000) for the mounted volume."
+                    exit 1
+                fi
+                
                 if getent passwd "${DETECTED_UID}" >/dev/null 2>&1; then
-                    # UID already exists - check if it's a system user (typically UID < 1000)
+                    # UID already exists
                     EXISTING_USER=$(getent passwd "${DETECTED_UID}" | cut -d: -f1)
-                    if [ "${DETECTED_UID}" -lt 1000 ]; then
-                        echo "ERROR: Detected UID ${DETECTED_UID} (${EXISTING_USER}) is a system user (UID < 1000)"
-                        echo "ERROR: Cannot safely reuse system user. Please use a non-system UID/GID (>= 1000) for the mounted volume."
-                        exit 1
-                    fi
                     echo "WARNING: UID ${DETECTED_UID} already exists as user '${EXISTING_USER}', will use it"
                     # Delete old user and use the existing one
                     userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
