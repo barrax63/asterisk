@@ -50,7 +50,7 @@ Dialplan with language selection and a simple main menu. Includes:
 
 To customize the configuration:
 
-1. Edit the files in `asterisk/config/`:
+1. Edit the files in `asterisk/config/` before building (they seed the `asterisk_config` named volume at `/etc/asterisk`):
    ```bash
    vi asterisk/config/extensions.conf  # Customize your IVR dialplan
    vi asterisk/config/pjsip.conf       # Adjust PJSIP settings if needed
