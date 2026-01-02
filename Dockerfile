@@ -305,10 +305,6 @@ WORKDIR /var/lib/asterisk
 # SIP signalling and RTP ports
 EXPOSE 5060/tcp 5060/udp 10000-20000/udp
 
-# Health check using the Asterisk CLI
-HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-    CMD asterisk -rx "core show version" || exit 1
-
 # Run as non-root asterisk user
 USER ${ASTERISK_USER}
 
