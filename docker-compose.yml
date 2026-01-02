@@ -19,6 +19,7 @@ services:
       dockerfile: Dockerfile
     image: barrax63/asterisk:20-latest
     init: true
+    network_mode: host
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
@@ -26,10 +27,6 @@ services:
       - ASTERISK_PASSWORD=${ASTERISK_PASSWORD}
       - ASTERISK_IP=${ASTERISK_IP}
       - FRITZBOX_IP=${FRITZBOX_IP}
-    ports:
-      - "5060:5060/tcp"
-      - "5060:5060/udp"
-      - "10000-20000:10000-20000/udp"
     volumes:
       # Asterisk configuration
       - ./asterisk/config:/etc/asterisk
