@@ -86,6 +86,30 @@ RUN apt-get update && \
         libedit-dev \
         libxslt1.1 \
         liburiparser1 \
+        libneon27-gnutls \
+        libcurl4 \
+        libgsm1 \
+        libsnmp40 \
+        libpq5 \
+        libiksemel3 \
+        libodbc2 \
+        libldap-2.5-0 \
+        libsrtp2-1 \
+        liblua5.2-0 \
+        libgmime-3.0-0 \
+        libspandsp2 \
+        libspeex1 \
+        libspeexdsp1 \
+        libcodec2-1.0 \
+        libvorbis0a \
+        libogg0 \
+        libportaudio2 \
+        libjack-jackd2-0 \
+        libsybdb5 \
+        libradcli4 \
+        libunbound8 \
+        libcap2-bin \
+        liburiparser1 \
         ca-certificates \
         iproute2 \
         procps && \
