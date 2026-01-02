@@ -19,7 +19,6 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 - **Resource Limits**: CPU and memory constraints in `docker-compose.yml` to avoid resource exhaustion.
 
 > **📘 Documentation**: 
-> - **Quick Reference**: [QUICKREF.md](QUICKREF.md) - Command cheatsheet and quick troubleshooting
 > - **Detailed Guide**: [IVR_BUILD.md](IVR_BUILD.md) - Complete build, configuration, and verification guide
 
 ## Directory Structure
