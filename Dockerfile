@@ -139,9 +139,6 @@ RUN set -eux; \
     # Ensure runtime PID/control dir exists and is owned by asterisk
     mkdir -p /var/run/asterisk && \
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /var/run/asterisk && \
-    \
-    # Set capabilities so Asterisk can bind low ports / adjust priority if needed
-    setcap 'cap_net_bind_service,cap_sys_nice=+ep' /usr/sbin/asterisk || true && \
     ldconfig
 
 # Volumes for persistent configuration, data and logs inside the container.
