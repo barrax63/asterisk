@@ -161,5 +161,10 @@ if [ "${USE_RUNTIME_CONFIG}" = true ]; then
     set -- "$@" "-C" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
 fi
 
+# If running as root, drop to the configured asterisk user before starting
+if [ "$(id -u)" -eq 0 ] && [ "${CMD_IS_ASTERISK}" = true ]; then
+    exec runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@"
+fi
+
 # Execute the CMD passed to the container (asterisk command)
 exec "$@"
