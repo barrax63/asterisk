@@ -66,7 +66,7 @@ if [ "${CONFIG_WRITABLE}" = false ]; then
     echo "Config directory not writable, using runtime copy at ${RUNTIME_CONFIG_DIR}..."
     ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
     mkdir -p "${ACTIVE_CONFIG_DIR}" || { echo "Failed to create ${ACTIVE_CONFIG_DIR}"; exit 1; }
-    # Copy current config, following symlinks (-L) and copying contents of the directory (${CONFIG_DIR}/.)
+    # Copy current config without dereferencing symlinks (-P), copying contents of the directory (${CONFIG_DIR}/.)
     cp -rP "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
