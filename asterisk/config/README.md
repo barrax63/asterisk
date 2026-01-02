@@ -25,8 +25,9 @@ The `modules.conf` file provides runtime safeguards against loading unused modul
 
 Pre-configured PJSIP configuration for FritzBox SIP trunk registration. Uses environment variable placeholders that are replaced at container startup:
 
-- `YOUR_PASSWORD` → `${ASTERISK_PASSWORD}` from .env
-- `YOUR_IP` → `${ASTERISK_IP}` from .env
+- `ASTERISK_USER` → `${ASTERISK_USER}` from .env
+- `ASTERISK_PASSWORD` → `${ASTERISK_PASSWORD}` from .env
+- `ASTERISK_IP` → `${ASTERISK_IP}` from .env
 - `FRITZBOX_IP` → `${FRITZBOX_IP}` from .env
 
 **Includes:**
@@ -71,6 +72,7 @@ To customize the configuration:
 Set these in your `.env` file (copy from `.env.example`):
 
 ```bash
+ASTERISK_USER=asterisk
 ASTERISK_PASSWORD=your_secret_password_here
 ASTERISK_IP=192.168.1.100
 FRITZBOX_IP=192.168.1.1
