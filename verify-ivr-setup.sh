@@ -45,18 +45,23 @@ echo
 
 # Check loaded codecs
 echo -e "${BLUE}[3/7] Checking loaded codecs...${NC}"
-CODECS=$(docker compose exec -T asterisk asterisk -rx "core show codecs" 2>/dev/null | grep -E "(alaw|ulaw|g722)" | awk '{print $2}' | sort | uniq)
+CODECS=$(docker compose exec -T asterisk asterisk -rx "core show codecs" 2>/dev/null | grep -E "(alaw|ulaw|g722)" | awk '{print $2}' | sort | uniq | grep -v "^$")
 EXPECTED_CODECS="alaw g722 ulaw"
 
 echo "Expected codecs: alaw, ulaw, g722"
 echo "Loaded codecs:"
-echo "$CODECS"
+if [ -z "$CODECS" ]; then
+    echo "(none found)"
+    CODEC_COUNT=0
+else
+    echo "$CODECS"
+    CODEC_COUNT=$(echo "$CODECS" | grep -c .)
+fi
 
-CODEC_COUNT=$(echo "$CODECS" | wc -l)
 if [ "$CODEC_COUNT" -eq 3 ] && echo "$CODECS" | grep -q "alaw" && echo "$CODECS" | grep -q "ulaw" && echo "$CODECS" | grep -q "g722"; then
     echo -e "${GREEN}✓ Only required codecs are loaded${NC}"
 else
-    echo -e "${YELLOW}⚠ Codec configuration may differ from expected${NC}"
+    echo -e "${YELLOW}⚠ Codec configuration may differ from expected (found $CODEC_COUNT codecs)${NC}"
 fi
 
 # Check for unwanted codecs
@@ -72,8 +77,14 @@ echo
 # Check PJSIP modules
 echo -e "${BLUE}[4/7] Checking PJSIP modules...${NC}"
 PJSIP_MODULES=$(docker compose exec -T asterisk asterisk -rx "module show like pjsip" 2>/dev/null | grep -c "res_pjsip" || echo "0")
-if [ "$PJSIP_MODULES" -gt 5 ]; then
-    echo -e "${GREEN}✓ PJSIP modules loaded ($PJSIP_MODULES modules)${NC}"
+# Check for essential PJSIP modules (more robust than just count)
+PJSIP_CORE=$(docker compose exec -T asterisk asterisk -rx "module show like res_pjsip.so" 2>/dev/null | grep -c "res_pjsip.so" || echo "0")
+PJSIP_SESSION=$(docker compose exec -T asterisk asterisk -rx "module show like res_pjsip_session" 2>/dev/null | grep -c "res_pjsip_session" || echo "0")
+
+if [ "$PJSIP_CORE" -ge 1 ] && [ "$PJSIP_SESSION" -ge 1 ] && [ "$PJSIP_MODULES" -ge 5 ]; then
+    echo -e "${GREEN}✓ PJSIP modules loaded ($PJSIP_MODULES modules, including core and session)${NC}"
+elif [ "$PJSIP_MODULES" -gt 0 ]; then
+    echo -e "${YELLOW}⚠ Some PJSIP modules loaded ($PJSIP_MODULES modules) but may be incomplete${NC}"
 else
     echo -e "${RED}✗ PJSIP modules not properly loaded${NC}"
 fi
@@ -130,8 +141,22 @@ TOTAL_MODULES=$(docker compose exec -T asterisk asterisk -rx "module show" 2>/de
 echo "Total modules loaded: $TOTAL_MODULES"
 echo
 
-# Final recommendation
-if [ "$CODEC_COUNT" -eq 3 ] && [ -z "$LEGACY_CHANNELS" ] && [ -z "$MISSING_APPS" ]; then
+# Final recommendation - use more robust checks
+PASS=true
+if [ "$CODEC_COUNT" -ne 3 ] || [ -z "$CODECS" ]; then
+    PASS=false
+fi
+if [ -n "$LEGACY_CHANNELS" ]; then
+    PASS=false
+fi
+if [ -n "$MISSING_APPS" ]; then
+    PASS=false
+fi
+if [ "$PJSIP_CORE" -lt 1 ] || [ "$PJSIP_SESSION" -lt 1 ]; then
+    PASS=false
+fi
+
+if [ "$PASS" = true ]; then
     echo -e "${GREEN}✓ Verification PASSED${NC}"
     echo -e "${GREEN}Your IVR-only Asterisk setup appears to be correctly configured.${NC}"
 else
