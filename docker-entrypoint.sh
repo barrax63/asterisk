@@ -22,6 +22,18 @@ escape_for_sed() {
     printf '%s' "$1" | sed 's/[\\/&]/\\&/g'
 }
 
+show_doc_permission_error() {
+    local operation=$1
+    echo "ERROR: Failed to ${operation} ${DOC_TARGET_DIR}"
+    echo "ERROR: The target directory is not writable. This usually happens with bind-mounted volumes."
+    if [ -n "${ASTERISK_UID}" ]; then
+        echo "ERROR: Please ensure the host directory has appropriate permissions or is owned by UID ${ASTERISK_UID}."
+        echo "ERROR: For example: sudo chown -R ${ASTERISK_UID}:${ASTERISK_GID} ./asterisk/data"
+    else
+        echo "ERROR: Please ensure the host directory has appropriate permissions."
+    fi
+}
+
 if [ -n "${CHOWN_PATHS:-}" ]; then
     CHOWN_TARGETS=()
     while IFS= read -r path; do
@@ -86,26 +98,12 @@ if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     
     # Attempt to create directory and restore documentation
     if ! mkdir -p "${DOC_TARGET_DIR}" 2>/dev/null; then
-        echo "ERROR: Failed to create ${DOC_TARGET_DIR}"
-        echo "ERROR: The target directory is not writable. This usually happens with bind-mounted volumes."
-        if [ -n "${ASTERISK_UID}" ]; then
-            echo "ERROR: Please ensure the host directory has appropriate permissions or is owned by UID ${ASTERISK_UID}."
-            echo "ERROR: For example: sudo chown -R ${ASTERISK_UID}:${ASTERISK_GID} ./asterisk/data"
-        else
-            echo "ERROR: Please ensure the host directory has appropriate permissions."
-        fi
+        show_doc_permission_error "create"
         exit 1
     fi
     
     if ! cp -a "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}" 2>/dev/null; then
-        echo "ERROR: Failed to copy documentation to ${DOC_TARGET_DIR}"
-        echo "ERROR: The target directory is not writable. This usually happens with bind-mounted volumes."
-        if [ -n "${ASTERISK_UID}" ]; then
-            echo "ERROR: Please ensure the host directory has appropriate permissions or is owned by UID ${ASTERISK_UID}."
-            echo "ERROR: For example: sudo chown -R ${ASTERISK_UID}:${ASTERISK_GID} ./asterisk/data"
-        else
-            echo "ERROR: Please ensure the host directory has appropriate permissions."
-        fi
+        show_doc_permission_error "copy documentation to"
         exit 1
     fi
     
