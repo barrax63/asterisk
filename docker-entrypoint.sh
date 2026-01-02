@@ -13,6 +13,8 @@ PJSIP_WRITABLE=true
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 ASTERISK_ACCOUNT_PRESENT=false
+ASTERISK_UID=""
+ASTERISK_GID=""
 DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
 DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 
@@ -46,6 +48,8 @@ fi
 
 if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1 && getent group "${ASTERISK_GROUP_NAME}" >/dev/null 2>&1; then
     ASTERISK_ACCOUNT_PRESENT=true
+    ASTERISK_UID=$(id -u "${ASTERISK_USER_NAME}")
+    ASTERISK_GID=$(id -g "${ASTERISK_USER_NAME}")
 fi
 
 # Ensure mounted directories are owned by the asterisk user on startup
@@ -84,15 +88,24 @@ if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     if ! mkdir -p "${DOC_TARGET_DIR}" 2>/dev/null; then
         echo "ERROR: Failed to create ${DOC_TARGET_DIR}"
         echo "ERROR: The target directory is not writable. This usually happens with bind-mounted volumes."
-        echo "ERROR: Please ensure the host directory has appropriate permissions or is owned by UID 1000."
-        echo "ERROR: For example: sudo chown -R 1000:1000 ./asterisk/data"
+        if [ -n "${ASTERISK_UID}" ]; then
+            echo "ERROR: Please ensure the host directory has appropriate permissions or is owned by UID ${ASTERISK_UID}."
+            echo "ERROR: For example: sudo chown -R ${ASTERISK_UID}:${ASTERISK_GID} ./asterisk/data"
+        else
+            echo "ERROR: Please ensure the host directory has appropriate permissions."
+        fi
         exit 1
     fi
     
     if ! cp -a "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}" 2>/dev/null; then
         echo "ERROR: Failed to copy documentation to ${DOC_TARGET_DIR}"
         echo "ERROR: The target directory is not writable. This usually happens with bind-mounted volumes."
-        echo "ERROR: Please ensure the host directory has appropriate permissions."
+        if [ -n "${ASTERISK_UID}" ]; then
+            echo "ERROR: Please ensure the host directory has appropriate permissions or is owned by UID ${ASTERISK_UID}."
+            echo "ERROR: For example: sudo chown -R ${ASTERISK_UID}:${ASTERISK_GID} ./asterisk/data"
+        else
+            echo "ERROR: Please ensure the host directory has appropriate permissions."
+        fi
         exit 1
     fi
     
