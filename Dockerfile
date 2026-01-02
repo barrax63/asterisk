@@ -40,6 +40,31 @@ RUN apt-get update && \
     ASTERISK_PREFER_APTITUDE=no contrib/scripts/install_prereq install && \
     # Configure the build
     ./configure && \
+    # Disable noisy optional modules
+    menuselect/menuselect \
+      --disable res_config_pgsql \
+      --disable res_config_ldap \
+      --disable res_config_odbc \
+      --disable res_odbc \
+      --disable res_odbc_transaction \
+      --disable func_odbc \
+      --disable cdr_pgsql \
+      --disable cel_pgsql \
+      --disable cdr_odbc \
+      --disable cel_odbc \
+      --disable cdr_tds \
+      --disable cel_tds \
+      --disable cdr_radius \
+      --disable cel_radius \
+      --disable res_calendar_icalendar \
+      --disable res_calendar_ews \
+      --disable res_calendar_caldav \
+      --disable res_calendar_exchange \
+      --disable app_jack \
+      --disable chan_alsa \
+      --disable format_ogg_vorbis \
+      --disable res_phoneprov \
+      menuselect.makeopts && \
     # Compile using all available CPU cores
     make -j"$(nproc)" && \
     # Install the compiled binaries and modules
