@@ -1,67 +1,102 @@
-# Configuration Templates
+# Configuration Files
 
-This directory contains configuration templates for the lean IVR-only Asterisk setup.
+This directory contains the lean IVR-only Asterisk configuration files that are baked into the Docker image at build time.
 
-## modules.conf
+## Configuration Files
 
-The `modules.conf` file in this directory is a **template** that provides runtime safeguards against loading unused modules. It complements the build-time module disabling in the Dockerfile.
+### modules.conf
 
-### Usage
+The `modules.conf` file provides runtime safeguards against loading unused modules. It complements the build-time module disabling in the Dockerfile with 147 `noload` directives.
 
-1. **First-time setup**: When you first start the Asterisk container, it will generate sample configuration files in the mounted `/etc/asterisk` directory (which maps to `./asterisk/config` on the host).
+**Key Features:**
+- Disables all channel drivers except PJSIP
+- Keeps only alaw, ulaw, g722 codecs
+- Keeps PCM/WAV format handlers for IVR prompts
+- Keeps IVR essentials: playback, read, dial, waitexten, stack
+- Disables ARI/Stasis, SNMP, HEP, MOH, voicemail, conferencing, queues
 
-2. **Deploy the template**: 
-   - After the first container start, you can use this `modules.conf` template to replace or supplement the auto-generated `modules.conf`:
-   
+**Optional Modules** (documented with comments):
+- AMI (enabled by default)
+- CDR/CEL (enabled by default)
+- SRTP/crypto (enabled by default)
+- AGI (disabled by default)
+
+### pjsip.conf
+
+Pre-configured PJSIP configuration for FritzBox SIP trunk registration. Uses environment variable placeholders that are replaced at container startup:
+
+- `YOUR_PASSWORD` → `${ASTERISK_PASSWORD}` from .env
+- `YOUR_IP` → `${ASTERISK_IP}` from .env
+- `FRITZBOX_IP` → `${FRITZBOX_IP}` from .env
+
+**Includes:**
+- Transport configuration (UDP on port 5060)
+- FritzBox registration
+- Authentication
+- Endpoint with g722, alaw, ulaw codecs
+- AOR and identify sections
+
+### extensions.conf
+
+Minimal dialplan for IVR operation. Includes:
+- Basic incoming call handler in `[incoming_calls]` context
+- Example commented-out IVR with DTMF menu
+- Placeholder for custom IVR logic
+
+## Usage
+
+### Customizing Configuration
+
+To customize the configuration:
+
+1. Edit the files in `asterisk/config/`:
    ```bash
-   # If you want to use the template as-is:
-   docker compose down
-   cp asterisk/config/modules.conf asterisk/config/modules.conf.bak  # Backup existing
-   # Edit asterisk/config/modules.conf to customize
+   vi asterisk/config/extensions.conf  # Customize your IVR dialplan
+   vi asterisk/config/pjsip.conf       # Adjust PJSIP settings if needed
+   vi asterisk/config/modules.conf     # Enable/disable optional modules
+   ```
+
+2. Rebuild the image to bake in your changes:
+   ```bash
+   docker compose build
+   ```
+
+3. Start/restart the container:
+   ```bash
    docker compose up -d
    ```
 
-   - Alternatively, merge the `noload` directives from this template into your existing `modules.conf`.
+### Environment Variables
 
-3. **Customize as needed**: 
-   - The template includes comments for optional modules (SRTP, AMI, CDR/CEL, AGI).
-   - Remove `noload` directives for modules you want to enable.
-   - Add additional `noload` directives as needed.
+Set these in your `.env` file (copy from `.env.example`):
 
-### What This Template Does
+```bash
+ASTERISK_PASSWORD=your_secret_password_here
+ASTERISK_IP=192.168.1.100
+FRITZBOX_IP=192.168.1.1
+```
 
-- **Runtime safeguard**: Even if a module was compiled at build-time, this prevents it from loading at runtime
-- **Explicit control**: Provides clear documentation of what's enabled/disabled
-- **Easy customization**: Comments indicate which modules can be optionally enabled
+The entrypoint script automatically replaces placeholders in pjsip.conf at container startup.
 
-### Key Sections
+## Verification
 
-1. **Channel Drivers**: Disables all except PJSIP
-2. **Codecs**: Keeps only alaw, ulaw, g722
-3. **Format Handlers**: Keeps PCM/WAV for IVR prompts
-4. **Applications**: Keeps IVR essentials (playback, read, dial, etc.)
-5. **Resources**: Keeps PJSIP stack, disables ARI/AMI/HTTP/SNMP/etc.
-
-### Important Notes
-
-- This is a **template** - you may need to adjust it for your specific use case
-- See [IVR_BUILD.md](../IVR_BUILD.md) for detailed documentation
-- The Dockerfile already disables most of these modules at build-time
-- This file provides an additional layer of protection and documentation
-
-### Verification
-
-After deploying and restarting with this modules.conf:
+After starting the container:
 
 ```bash
 # Check loaded modules
 docker compose exec asterisk asterisk -rx "module show"
 
-# Check codecs
+# Check codecs (should show only alaw, ulaw, g722)
 docker compose exec asterisk asterisk -rx "core show codecs"
 
-# Check PJSIP
+# Check PJSIP registration
 docker compose exec asterisk asterisk -rx "pjsip show endpoints"
+docker compose exec asterisk asterisk -rx "pjsip show registrations"
 ```
 
-For comprehensive verification steps, see [IVR_BUILD.md](../IVR_BUILD.md#verification-steps).
+Or use the automated verification script:
+```bash
+./verify-ivr-setup.sh
+```
+
+For comprehensive documentation, see [IVR_BUILD.md](../IVR_BUILD.md).

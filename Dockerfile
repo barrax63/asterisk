@@ -173,8 +173,8 @@ RUN apt-get update && \
     make -j"$(nproc)" && \
     # Install the compiled binaries and modules
     make install && \
-    # Install sample configuration files
-    make samples && \
+    # Create minimal config directories (no samples)
+    mkdir -p /etc/asterisk && \
     # Install startup scripts / system integration
     make config && \
     # Refresh runtime linker cache
@@ -257,10 +257,19 @@ RUN apt-get update && \
 COPY --from=builder /usr/sbin/asterisk /usr/sbin/asterisk
 COPY --from=builder /usr/lib/asterisk /usr/lib/asterisk
 COPY --from=builder /usr/lib/libasterisk*.so* /usr/lib/
-COPY --from=builder /etc/asterisk /etc/asterisk
 COPY --from=builder /var/lib/asterisk /var/lib/asterisk
 COPY --from=builder /var/spool/asterisk /var/spool/asterisk
 COPY --from=builder /var/log/asterisk /var/log/asterisk
+
+# Copy lean IVR-only configuration files
+COPY asterisk/config/asterisk.conf /etc/asterisk/asterisk.conf
+COPY asterisk/config/modules.conf /etc/asterisk/modules.conf
+COPY asterisk/config/pjsip.conf /etc/asterisk/pjsip.conf
+COPY asterisk/config/extensions.conf /etc/asterisk/extensions.conf
+
+# Copy entrypoint script for environment variable substitution
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Create a dedicated asterisk user/group and fix permissions,
 # and configure the history file location.
@@ -271,7 +280,7 @@ RUN set -eux; \
     \
     # Ensure directories exist (COPY above should have created them, but we
     # re-create idempotently in case of future changes)
-    mkdir -p /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
+    mkdir -p /etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
     \
     # Set ownership for Asterisk directories
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /etc/asterisk && \
@@ -316,6 +325,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
 # Run as non-root asterisk user
 USER ${ASTERISK_USER}
 
-# Start Asterisk in the foreground
-ENTRYPOINT ["asterisk"]
-CMD ["-f", "-vvv"]
+# Use entrypoint script to handle environment variable substitution
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["asterisk", "-f", "-vvv"]

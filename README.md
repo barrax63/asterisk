@@ -65,18 +65,39 @@ git clone https://github.com/barrax63/asterisk.git
 cd asterisk
 ```
 
-### 3. Prepare the Project Directory
+### 3. Configure Environment Variables
 
-Create the local folders that will be bind‑mounted into the container:
+Copy the example environment file and customize it with your settings:
 
 ```bash
-# Create local folders for configuration, data and logs
-mkdir -p asterisk/config asterisk/data asterisk/logs
+cp .env.example .env
 ```
 
-After the first container start, you will see Asterisk’s sample configuration files and runtime data populated into these directories.
+Edit `.env` and set your FritzBox configuration:
 
-### 4. Build and Start
+```bash
+# FritzBox SIP Registration Password
+ASTERISK_PASSWORD=your_secret_password_here
+
+# Asterisk Server IP Address (where this container is reachable)
+ASTERISK_IP=192.168.1.100
+
+# FritzBox IP Address
+FRITZBOX_IP=192.168.1.1
+```
+
+### 4. Prepare the Project Directory
+
+Create the local folders that will be bind-mounted into the container:
+
+```bash
+# Create local folders for data and logs
+mkdir -p asterisk/data asterisk/logs
+```
+
+**Note**: Configuration files are pre-configured in `asterisk/config/` and will be copied into the container at build time. The lean IVR-only configuration is applied automatically.
+
+### 5. Build and Start
 
 From within the project directory:
 
@@ -91,6 +112,10 @@ docker compose up -d
 docker compose logs -f asterisk
 ```
 
+The entrypoint script will automatically configure pjsip.conf with your environment variables from `.env`.
+
+### 6. Connect to the Asterisk CLI
+
 ### 5. Connect to the Asterisk CLI
 
 To attach to the Asterisk CLI for debugging and administration:
@@ -101,19 +126,22 @@ docker compose exec asterisk asterisk -rvvvvv
 
 You should see an Asterisk banner and a CLI prompt.
 
-### 6. Configure IVR-Only Runtime (Optional)
+### 7. Customize Your IVR Dialplan
 
-This image is pre-configured for lean IVR-only operation with PJSIP and codecs (alaw/ulaw/g722). To apply the runtime module restrictions:
+The container comes with a basic IVR dialplan in `asterisk/config/extensions.conf`. Customize it for your needs:
 
 ```bash
-# Copy the modules.conf template to your config directory (if not already present)
-# This provides runtime safeguards against loading unused modules
-cp asterisk/config/modules.conf asterisk/config/modules.conf.ivr
+# Edit the dialplan
+vi asterisk/config/extensions.conf
 
-# Review and customize the modules.conf as needed
-# Then restart the container
+# Rebuild the image to include your changes
+docker compose build
+
+# Restart the container
 docker compose restart asterisk
 ```
+
+**Note**: The lean IVR-only configuration is pre-applied. The image includes only essential modules for PJSIP-based IVR with alaw/ulaw/g722 codecs. All configuration files (modules.conf, pjsip.conf, extensions.conf) are baked into the image at build time.
 
 For detailed configuration options, verification steps, and customization, see **[IVR_BUILD.md](IVR_BUILD.md)**.
 

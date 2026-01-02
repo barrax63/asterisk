@@ -22,6 +22,11 @@ services:
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
+      - ASTERISK_PASSWORD=${ASTERISK_PASSWORD}
+      - ASTERISK_IP=${ASTERISK_IP}
+      - FRITZBOX_IP=${FRITZBOX_IP}
+    env_file:
+      - .env
     ports:
       - "5060:5060/tcp"
       - "5060:5060/udp"
