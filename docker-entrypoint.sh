@@ -9,14 +9,20 @@ RUNTIME_CONFIG_DIR="/tmp/asterisk-config"
 ACTIVE_CONFIG_DIR="${CONFIG_DIR}"
 CONFIG_WRITABLE=true
 PJSIP_ORIGINAL="${CONFIG_DIR}/pjsip.conf"
+PJSIP_WRITABLE=true
+
+if [ ! -d "${CONFIG_DIR}" ]; then
+    echo "Config directory ${CONFIG_DIR} not found."
+    exit 1
+fi
 
 # If the mounted config directory isn't writable (common with bind mounts),
 # work on a runtime copy we can modify.
-if [ ! -w "${CONFIG_DIR}" ]; then
-    CONFIG_WRITABLE=false
+if [ -f "${PJSIP_ORIGINAL}" ] && [ ! -w "${PJSIP_ORIGINAL}" ]; then
+    PJSIP_WRITABLE=false
 fi
 
-if [ -f "${PJSIP_ORIGINAL}" ] && [ ! -w "${PJSIP_ORIGINAL}" ]; then
+if [ ! -w "${CONFIG_DIR}" ] || [ "${PJSIP_WRITABLE}" = false ]; then
     CONFIG_WRITABLE=false
 fi
 
@@ -80,7 +86,13 @@ if [ -f "${PJSIP_PATH}" ]; then
 fi
 
 # If we had to relocate configs, ensure Asterisk reads from the runtime copy
+USE_RUNTIME_CONFIG=false
+
 if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ] && [ "$#" -ge 1 ] && [ "$1" = "asterisk" ]; then
+    USE_RUNTIME_CONFIG=true
+fi
+
+if [ "${USE_RUNTIME_CONFIG}" = true ]; then
     set -- "$@" "-C" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
 fi
 
