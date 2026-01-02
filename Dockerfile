@@ -40,6 +40,8 @@ RUN apt-get update && \
     ASTERISK_PREFER_APTITUDE=no contrib/scripts/install_prereq install && \
     # Configure the build
     ./configure && \
+    # Build menuselect binary/options
+    make menuselect.makeopts && \
     # Disable noisy optional modules
     menuselect/menuselect \
       --disable res_config_pgsql \
