@@ -35,8 +35,8 @@ if [ "${CONFIG_WRITABLE}" = false ]; then
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        ESCAPED_CONFIG_DIR=$(printf '%s' "${ACTIVE_CONFIG_DIR}" | sed 's/[\\&|]/\\&/g')
-        sed -i "s|^astetcdir[[:space:]]*=>[[:space:]]*.*|astetcdir => ${ESCAPED_CONFIG_DIR}|" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
+        ESCAPED_CONFIG_DIR=$(printf '%s' "${ACTIVE_CONFIG_DIR}" | sed 's/[#&]/\\&/g')
+        sed -i "s#^astetcdir[[:space:]]*=>[[:space:]]*.*#astetcdir => ${ESCAPED_CONFIG_DIR}#" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
     fi
 fi
 
