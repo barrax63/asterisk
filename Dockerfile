@@ -275,8 +275,8 @@ RUN set -eux; \
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /usr/lib/asterisk && \
     \
     # Prepare call recording path used by the dialplan
-    mkdir -p /mnt/usb-backup/recordings && \
-    chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /mnt/usb-backup && \
+    mkdir -p /opt/asterisk/recordings && \
+    chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /opt/asterisk && \
     \
     # Enable runuser/rungroup in /etc/asterisk/asterisk.conf
     sed -i 's/;runuser/runuser/g'   /etc/asterisk/asterisk.conf && \
@@ -301,7 +301,7 @@ RUN set -eux; \
 #   ./asterisk/config -> /etc/asterisk
 #   ./asterisk/data   -> /var/lib/asterisk
 #   ./asterisk/logs   -> /var/log/asterisk
-VOLUME ["/etc/asterisk", "/var/lib/asterisk", "/var/log/asterisk", "/var/spool/asterisk"]
+VOLUME ["/opt/asterisk", "/etc/asterisk", "/var/lib/asterisk", "/var/log/asterisk", "/var/spool/asterisk"]
 
 # Work inside Asterisk data directory
 WORKDIR /var/lib/asterisk
