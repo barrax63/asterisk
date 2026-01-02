@@ -248,7 +248,13 @@ if [ -f "${PJSIP_PATH}" ]; then
     fi
     
     # Move the modified file back
-    mv "$TEMP_PJSIP" "${PJSIP_PATH}"
+    # Use cat instead of mv to avoid cross-device/permission issues
+    cat "$TEMP_PJSIP" > "${PJSIP_PATH}"
+    rm -f "$TEMP_PJSIP"
+    # Ensure proper ownership after modification
+    if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
+        chown "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${PJSIP_PATH}"
+    fi
     echo "pjsip.conf configuration complete."
 fi
 
