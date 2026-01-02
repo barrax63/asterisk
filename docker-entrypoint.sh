@@ -34,7 +34,7 @@ show_doc_permission_error() {
 }
 
 # Generic function to restore files from stash directory to target directory
-# Only copies files that don't already exist in the target (preserves user customizations)
+# Syncs files from stash to target, updating files that are newer in the stash
 # Parameters:
 #   $1 - stash_dir: Source directory containing files to restore
 #   $2 - target_dir: Destination directory where files should be restored
@@ -63,53 +63,28 @@ restore_files_from_stash() {
         }
     fi
     
-    local restored_count=0
-    
-    # Build find command arguments - set up exclusion options if needed
-    local find_args=("${stash_dir}" -mindepth 1)
+    # Build rsync command with exclude option if needed
+    local rsync_args=(-a --update)
     if [ -n "${exclude_path}" ]; then
-        find_args+=(-not -path "${stash_dir}/${exclude_path}" -not -path "${stash_dir}/${exclude_path}/*")
+        rsync_args+=(--exclude="${exclude_path}")
     fi
-    find_args+=(-print0)
     
-    # Iterate through all files and directories in the stash (excluding specified paths if any)
-    while IFS= read -r -d '' stash_item; do
-        # Get relative path from stash directory
-        local rel_path="${stash_item#"${stash_dir}"/}"
-        local target_item="${target_dir}/${rel_path}"
-        
-        if [ -d "${stash_item}" ]; then
-            # Create directory if it doesn't exist
-            if [ ! -d "${target_item}" ]; then
-                mkdir -p "${target_item}" 2>/dev/null || {
-                    echo "WARNING: Failed to create directory ${target_item}"
-                    continue
-                }
-            fi
-        elif [ -f "${stash_item}" ]; then
-            # Copy file only if it doesn't already exist (use -f for regular files)
-            if [ ! -f "${target_item}" ]; then
-                cp -a "${stash_item}" "${target_item}" 2>/dev/null || {
-                    echo "WARNING: Failed to restore ${rel_path}"
-                    continue
-                }
-                restored_count=$((restored_count + 1))
-                echo "  - Restored: ${rel_path}"
-            fi
-        fi
-    done < <(find "${find_args[@]}")
+    # Use rsync to sync files from stash to target
+    # -a: Archive mode (preserves permissions, ownership, timestamps, etc.)
+    # --update: Skip files that are newer on the receiver (preserves user modifications)
+    # --exclude: Exclude specified paths if provided
+    if rsync "${rsync_args[@]}" "${stash_dir}/" "${target_dir}/"; then
+        echo "Successfully synced ${description} files"
+    else
+        echo "WARNING: rsync encountered issues while syncing ${description}"
+        echo "WARNING: Check permissions and disk space in ${target_dir}"
+    fi
     
     # Set ownership to asterisk user if account is present
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
         chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${target_dir}" 2>/dev/null || {
             echo "WARNING: Failed to set ownership for ${target_dir}"
         }
-    fi
-    
-    if [ "${restored_count}" -gt 0 ]; then
-        echo "Successfully restored ${restored_count} ${description} file(s)"
-    else
-        echo "No ${description} files needed restoration (all already present)"
     fi
     
     return 0
