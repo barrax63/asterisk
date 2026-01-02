@@ -85,6 +85,7 @@ RUN apt-get update && \
         libssl-dev \
         libedit-dev \
         libxslt1.1 \
+        liburiparser1 \
         ca-certificates \
         iproute2 \
         procps && \
