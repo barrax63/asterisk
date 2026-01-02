@@ -56,6 +56,63 @@ if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1 && getent group "${ASTE
     ASTERISK_GID=$(id -g "${ASTERISK_USER_NAME}")
 fi
 
+# Dynamically detect UID/GID from mounted volumes and adjust user/group accordingly
+# This prevents permission errors when using Docker volumes with different host UID/GID
+DETECTED_UID=""
+DETECTED_GID=""
+
+# Try to detect UID/GID from the first available mounted directory
+for check_dir in /var/lib/asterisk /etc/asterisk /var/log/asterisk /opt/asterisk; do
+    if [ -d "${check_dir}" ] && [ -e "${check_dir}" ]; then
+        # Get the owner UID/GID of the directory
+        DIR_OWNER=$(stat -c '%u:%g' "${check_dir}" 2>/dev/null || echo "")
+        if [ -n "${DIR_OWNER}" ] && [ "${DIR_OWNER}" != "0:0" ]; then
+            DETECTED_UID="${DIR_OWNER%:*}"
+            DETECTED_GID="${DIR_OWNER#*:}"
+            echo "Detected UID:GID ${DETECTED_UID}:${DETECTED_GID} from ${check_dir}"
+            break
+        fi
+    fi
+done
+
+# If we detected a different UID/GID from the volume, update the asterisk user/group
+if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
+    if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
+        # Check if current UID/GID differs from detected
+        if [ "${ASTERISK_UID}" != "${DETECTED_UID}" ] || [ "${ASTERISK_GID}" != "${DETECTED_GID}" ]; then
+            echo "Adjusting asterisk user from UID:GID ${ASTERISK_UID}:${ASTERISK_GID} to ${DETECTED_UID}:${DETECTED_GID}"
+            
+            # Update group GID if it differs
+            if [ "${ASTERISK_GID}" != "${DETECTED_GID}" ]; then
+                if getent group "${DETECTED_GID}" >/dev/null 2>&1; then
+                    # GID already exists, remove old group and use existing one
+                    echo "GID ${DETECTED_GID} already exists, removing old group"
+                    groupdel "${ASTERISK_GROUP_NAME}" 2>/dev/null || true
+                    ASTERISK_GROUP_NAME=$(getent group "${DETECTED_GID}" | cut -d: -f1)
+                else
+                    groupmod -g "${DETECTED_GID}" "${ASTERISK_GROUP_NAME}"
+                fi
+                ASTERISK_GID="${DETECTED_GID}"
+            fi
+            
+            # Update user UID if it differs
+            if [ "${ASTERISK_UID}" != "${DETECTED_UID}" ]; then
+                if getent passwd "${DETECTED_UID}" >/dev/null 2>&1; then
+                    # UID already exists, remove old user and use existing one
+                    echo "UID ${DETECTED_UID} already exists, removing old user"
+                    userdel "${ASTERISK_USER_NAME}" 2>/dev/null || true
+                    ASTERISK_USER_NAME=$(getent passwd "${DETECTED_UID}" | cut -d: -f1)
+                else
+                    usermod -u "${DETECTED_UID}" -g "${ASTERISK_GROUP_NAME}" "${ASTERISK_USER_NAME}"
+                fi
+                ASTERISK_UID="${DETECTED_UID}"
+            fi
+            
+            echo "Successfully adjusted to UID:GID ${ASTERISK_UID}:${ASTERISK_GID}"
+        fi
+    fi
+fi
+
 # Ensure mounted directories are owned by the asterisk user on startup
 if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
     for target in "${CHOWN_TARGETS[@]}"; do
@@ -183,15 +240,15 @@ CLI_CONFIG_ARGS=()
 if [ "$(id -u)" -eq 0 ] && [ "${CMD_IS_ASTERISK}" = true ]; then
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
         ASTERISK_PID=""
-        RUN_AS_ASTERISK="runuser -u ${ASTERISK_USER_NAME} -g ${ASTERISK_GROUP_NAME} --"
-        ${RUN_AS_ASTERISK} "$@" &
+        # Use gosu to drop privileges and run as the asterisk user
+        gosu "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "$@" &
         ASTERISK_PID=$!
         trap 'if [ -n "${ASTERISK_PID}" ]; then kill -TERM "${ASTERISK_PID}"; fi' TERM INT QUIT HUP
 
         XMLDOC_RELOADED=false
         for attempt in $(seq 1 "${XMLDOC_RELOAD_RETRIES}"); do
-            if ${RUN_AS_ASTERISK} asterisk "${CLI_CONFIG_ARGS[@]}" -rx "core show version" >/dev/null 2>&1 && \
-               ${RUN_AS_ASTERISK} asterisk "${CLI_CONFIG_ARGS[@]}" -rx "xmldoc reload"; then
+            if gosu "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" asterisk "${CLI_CONFIG_ARGS[@]}" -rx "core show version" >/dev/null 2>&1 && \
+               gosu "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" asterisk "${CLI_CONFIG_ARGS[@]}" -rx "xmldoc reload"; then
                 echo "Applied 'xmldoc reload' during startup."
                 XMLDOC_RELOADED=true
                 sleep 1
