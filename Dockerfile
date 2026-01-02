@@ -131,7 +131,9 @@ RUN set -eux; \
     # Ensure astctlhistory is configured (append only if not already present)
     grep -q 'astctlhistory' /etc/asterisk/asterisk.conf || \
       printf '\n[options]\nastctlhistory => /var/lib/asterisk/.asterisk/.asterisk_history\n' \
-      >> /etc/asterisk/asterisk.conf
+      >> /etc/asterisk/asterisk.conf && \
+    # Add ldconfig to ensure shared library cache is updated after configuring astctlhistory
+    ldconfig
 
 # Volumes for persistent configuration, data and logs inside the container.
 # On the host, docker-compose will bind-mount:
