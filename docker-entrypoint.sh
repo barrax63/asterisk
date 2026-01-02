@@ -73,10 +73,11 @@ restore_files_from_stash() {
     # -a: Archive mode (preserves permissions, ownership, timestamps, etc.)
     # --update: Skip files that are newer on the receiver (preserves user modifications)
     # --exclude: Exclude specified paths if provided
-    if rsync "${rsync_args[@]}" "${stash_dir}/" "${target_dir}/" 2>/dev/null; then
+    if rsync "${rsync_args[@]}" "${stash_dir}/" "${target_dir}/"; then
         echo "Successfully synced ${description} files"
     else
         echo "WARNING: rsync encountered issues while syncing ${description}"
+        echo "WARNING: Check permissions and disk space in ${target_dir}"
     fi
     
     # Set ownership to asterisk user if account is present
