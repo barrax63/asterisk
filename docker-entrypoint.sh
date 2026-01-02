@@ -30,12 +30,14 @@ if [ "${CONFIG_WRITABLE}" = false ]; then
     echo "Config directory not writable, using runtime copy at ${RUNTIME_CONFIG_DIR}..."
     ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
     mkdir -p "${ACTIVE_CONFIG_DIR}"
-    # Copy current config, following symlinks (-L) and copying contents of the directory (/.)
+    # Copy current config, following symlinks (-L) and copying contents of the directory (${CONFIG_DIR}/.)
     cp -rL "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        sed -i "s|^astetcdir[[:space:]]*=>[[:space:]]*.*|astetcdir => ${ACTIVE_CONFIG_DIR}|" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
+        ESCAPED_CONFIG_DIR=${ACTIVE_CONFIG_DIR//&/\\&}
+        ESCAPED_CONFIG_DIR=${ESCAPED_CONFIG_DIR//|/\\|}
+        sed -i "s|^astetcdir[[:space:]]*=>[[:space:]]*.*|astetcdir => ${ESCAPED_CONFIG_DIR}|" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
     fi
 fi
 
@@ -89,8 +91,9 @@ fi
 # If we had to relocate configs, ensure Asterisk reads from the runtime copy
 USE_RUNTIME_CONFIG=false
 
-if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ]; then
-    if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ] && [ "$#" -ge 1 ] && [ "$1" = "asterisk" ]; then
+if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ "$#" -ge 1 ]; then
+    CMD_BASENAME=$(basename "$1")
+    if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ] && [ "${CMD_BASENAME}" = "asterisk" ]; then
         USE_RUNTIME_CONFIG=true
     fi
 fi
