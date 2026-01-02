@@ -29,13 +29,13 @@ services:
       - FRITZBOX_IP=${FRITZBOX_IP}
     volumes:
       # Asterisk configuration
-      - ./asterisk/config:/etc/asterisk
+      - asterisk_config:/etc/asterisk
       # Voicemail, SQLite DBs, runtime data
-      - ./asterisk/data:/var/lib/asterisk
+      - asterisk_data:/var/lib/asterisk
       # MixMonitor Recordings
-      - ./asterisk/recordings:/opt/asterisk/recordings
+      - asterisk_recordings:/opt/asterisk/recordings
       # Log files
-      - ./asterisk/logs:/var/log/asterisk
+      - asterisk_logs:/var/log/asterisk
     cap_add:
       - CHOWN
       - FOWNER
@@ -60,3 +60,9 @@ services:
           cpus: "0.5"
           memory: 512M
     logging: *default-logging
+
+volumes:
+  asterisk_config:
+  asterisk_data:
+  asterisk_recordings:
+  asterisk_logs:

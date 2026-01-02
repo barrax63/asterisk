@@ -224,7 +224,25 @@ fi
 # This is intentional to allow system administration tasks when needed.
 if [ "$(id -u)" -eq 0 ] && [ "${CMD_IS_ASTERISK}" = true ]; then
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
-        exec runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@"
+        runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- "$@" &
+        ASTERISK_PID=$!
+
+        trap 'kill -TERM ${ASTERISK_PID} 2>/dev/null' TERM INT
+
+        for _ in $(seq 1 10); do
+            if runuser -u "${ASTERISK_USER_NAME}" -g "${ASTERISK_GROUP_NAME}" -- asterisk -rx "xmldoc reload" >/dev/null 2>&1; then
+                echo "Applied 'xmldoc reload' during startup."
+                break
+            fi
+            sleep 1
+        done
+
+        set +e
+        wait "${ASTERISK_PID}"
+        EXIT_CODE=$?
+        set -e
+        trap - TERM INT
+        exit "${EXIT_CODE}"
     else
         echo "Error: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; refusing to start as root"
         exit 1

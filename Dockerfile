@@ -245,11 +245,8 @@ COPY --from=builder /var/log/asterisk /var/log/asterisk
 RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime && \
     chown -R root:root /usr/share/asterisk-runtime
 
-# Copy lean IVR-only configuration files
-COPY asterisk/config/asterisk.conf /etc/asterisk/asterisk.conf
-COPY asterisk/config/modules.conf /etc/asterisk/modules.conf
-COPY asterisk/config/pjsip.conf /etc/asterisk/pjsip.conf
-COPY asterisk/config/extensions.conf /etc/asterisk/extensions.conf
+# Copy lean IVR-only configuration files (entire config directory)
+COPY asterisk/config/ /etc/asterisk/
 
 # Copy entrypoint script for environment variable substitution
 COPY docker-entrypoint.sh /usr/local/bin/
