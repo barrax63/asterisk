@@ -60,7 +60,7 @@ restore_files_from_stash() {
     # Iterate through all files and directories in the stash
     while IFS= read -r -d '' stash_item; do
         # Get relative path from stash directory
-        local rel_path="${stash_item#${stash_dir}/}"
+        local rel_path="${stash_item#"${stash_dir}"/}"
         local target_item="${target_dir}/${rel_path}"
         
         if [ -d "${stash_item}" ]; then
