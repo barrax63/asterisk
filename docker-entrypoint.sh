@@ -36,7 +36,7 @@ if [ -n "${CHOWN_PATHS:-}" ]; then
         [ -n "${path}" ] && CHOWN_TARGETS+=("${path}")
     done < <(printf '%s\n' "${CHOWN_PATHS}" | tr ':' '\n')
 else
-    CHOWN_TARGETS=(/etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk /opt/asterisk)
+    CHOWN_TARGETS=(/etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk /opt/asterisk /var/run/asterisk)
 fi
 
 if ! printf '%s' "${ASTERISK_USER_NAME}" | grep -Eq '^[a-z_][a-z0-9_-]{0,31}$'; then
@@ -211,7 +211,11 @@ fi
 if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
     for target in "${CHOWN_TARGETS[@]}"; do
         case "${target}" in
-            /etc/asterisk*|/var/lib/asterisk*|/var/log/asterisk*|/var/spool/asterisk*|/opt/asterisk*)
+            /etc/asterisk*|/var/lib/asterisk*|/var/log/asterisk*|/var/spool/asterisk*|/opt/asterisk*|/var/run/asterisk*)
+                # Create directory if it doesn't exist
+                if [ ! -d "${target}" ]; then
+                    mkdir -p "${target}" 2>/dev/null || true
+                fi
                 if [ -d "${target}" ]; then
                     if chown -Rh -- "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${target}"; then
                         echo "Ensured ownership for ${target}"
