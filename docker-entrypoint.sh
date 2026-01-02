@@ -72,15 +72,14 @@ fi
 
 # Restore XML documentation into bind-mounted /var/lib/asterisk if missing
 DOC_TARGET_MISSING_OR_EMPTY=true
-if [ -d "${DOC_TARGET_DIR}" ] && \
-   [ -n "$(find "${DOC_TARGET_DIR}" -maxdepth 1 -mindepth 1 -print -quit 2>/dev/null)" ]; then
+if [ -d "${DOC_TARGET_DIR}" ] && [ -n "$(ls -A "${DOC_TARGET_DIR}" 2>/dev/null)" ]; then
     DOC_TARGET_MISSING_OR_EMPTY=false
 fi
 
 if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_MISSING_OR_EMPTY}" = true ]; then
     echo "Restoring Asterisk documentation into ${DOC_TARGET_DIR}..."
     mkdir -p "${DOC_TARGET_DIR}"
-    cp -R "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}/"
+    cp -r "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}/"
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
         chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}"
     else
