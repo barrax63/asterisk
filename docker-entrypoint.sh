@@ -1,15 +1,10 @@
 #!/bin/bash
 set -e
 
-# This script runs as root to handle bind-mount permissions and documentation restoration,
+# This script runs as root to handle permissions and documentation restoration,
 # then drops privileges to the asterisk user when launching Asterisk.
 
 CONFIG_DIR="/etc/asterisk"
-RUNTIME_CONFIG_DIR="/tmp/asterisk-config"
-ACTIVE_CONFIG_DIR="${CONFIG_DIR}"
-CONFIG_WRITABLE=true
-PJSIP_ORIGINAL="${CONFIG_DIR}/pjsip.conf"
-PJSIP_WRITABLE=true
 ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
 ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 ASTERISK_ACCOUNT_PRESENT=false
@@ -18,10 +13,6 @@ ASTERISK_GID=""
 DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
 DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
-
-escape_for_sed() {
-    printf '%s' "$1" | sed 's/[\\/&]/\\&/g'
-}
 
 show_doc_permission_error() {
     local operation=$1
@@ -121,31 +112,7 @@ if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     echo "Documentation successfully restored to ${DOC_TARGET_DIR}"
 fi
 
-# If the mounted config directory isn't writable (common with bind mounts),
-# work on a runtime copy we can modify.
-if [ -f "${PJSIP_ORIGINAL}" ] && [ ! -w "${PJSIP_ORIGINAL}" ]; then
-    PJSIP_WRITABLE=false
-fi
-
-if [ ! -w "${CONFIG_DIR}" ] || [ "${PJSIP_WRITABLE}" = false ]; then
-    CONFIG_WRITABLE=false
-fi
-
-if [ "${CONFIG_WRITABLE}" = false ]; then
-    echo "Config directory not writable, using runtime copy at ${RUNTIME_CONFIG_DIR}..."
-    ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
-    mkdir -p "${ACTIVE_CONFIG_DIR}" || { echo "Failed to create ${ACTIVE_CONFIG_DIR}"; exit 1; }
-    # Copy current config without dereferencing symlinks (-P), copying contents of the directory (${CONFIG_DIR}/.)
-    cp -rP "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
-    chmod -R u+w "${ACTIVE_CONFIG_DIR}"
-
-    if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        ESCAPED_CONFIG_DIR=$(escape_for_sed "${ACTIVE_CONFIG_DIR}")
-        sed -i "s#^astetcdir[[:space:]]*=>[[:space:]]*.*#astetcdir => ${ESCAPED_CONFIG_DIR}#" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
-    fi
-fi
-
-PJSIP_PATH="${ACTIVE_CONFIG_DIR}/pjsip.conf"
+PJSIP_PATH="${CONFIG_DIR}/pjsip.conf"
 
 # Replace environment variables in pjsip.conf if they are set
 if [ -f "${PJSIP_PATH}" ]; then
@@ -192,8 +159,6 @@ if [ -f "${PJSIP_PATH}" ]; then
     echo "pjsip.conf configuration complete."
 fi
 
-# If we had to relocate configs, ensure Asterisk reads from the runtime copy
-USE_RUNTIME_CONFIG=false
 CMD_IS_ASTERISK=false
 RESOLVED_CMD=""
 
@@ -209,21 +174,7 @@ case "${RESOLVED_CMD}" in
     asterisk|*/asterisk) CMD_IS_ASTERISK=true ;;
 esac
 
-if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ "${CMD_IS_ASTERISK}" = true ]; then
-    if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        USE_RUNTIME_CONFIG=true
-    fi
-fi
-
-if [ "${USE_RUNTIME_CONFIG}" = true ]; then
-    set -- "$@" "-C" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
-fi
-
-# Preserve config path for CLI calls when configs are relocated
 CLI_CONFIG_ARGS=()
-if [ "${USE_RUNTIME_CONFIG}" = true ]; then
-    CLI_CONFIG_ARGS=( -C "${ACTIVE_CONFIG_DIR}/asterisk.conf" )
-fi
 
 # If running as root, drop to the configured asterisk user before starting Asterisk
 # Note: Privileges are only dropped for the Asterisk command to ensure proper security.
