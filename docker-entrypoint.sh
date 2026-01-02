@@ -71,16 +71,19 @@ else
 fi
 
 # Restore XML documentation into bind-mounted /var/lib/asterisk if missing
-if [ -d "${DOC_STASH_DIR}" ]; then
-    if [ ! -d "${DOC_TARGET_DIR}" ] || [ -z "$(ls -A "${DOC_TARGET_DIR}" 2>/dev/null)" ]; then
-        echo "Restoring Asterisk documentation into ${DOC_TARGET_DIR}..."
-        mkdir -p "${DOC_TARGET_DIR}"
-        cp -a "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}/"
-        if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
-            chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}"
-        else
-            echo "Warning: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; skipping documentation ownership adjustments"
-        fi
+DOC_TARGET_MISSING_OR_EMPTY=false
+if [ ! -d "${DOC_TARGET_DIR}" ] || [ -z "$(ls -A "${DOC_TARGET_DIR}" 2>/dev/null)" ]; then
+    DOC_TARGET_MISSING_OR_EMPTY=true
+fi
+
+if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_MISSING_OR_EMPTY}" = true ]; then
+    echo "Restoring Asterisk documentation into ${DOC_TARGET_DIR}..."
+    mkdir -p "${DOC_TARGET_DIR}"
+    cp -a --no-preserve=ownership "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}/"
+    if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
+        chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}"
+    else
+        echo "Warning: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; skipping documentation ownership adjustments"
     fi
 fi
 
