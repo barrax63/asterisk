@@ -102,6 +102,8 @@ RUN apt-get update && \
         libspeexdsp1 \
         libcodec2-1.0 \
         libvorbis0a \
+        libvorbisenc2 \
+        libresample1 \
         libogg0 \
         libportaudio2 \
         libjack-jackd2-0 \

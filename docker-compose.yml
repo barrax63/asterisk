@@ -33,6 +33,13 @@ services:
       - ./asterisk/data:/var/lib/asterisk
       # Log files
       - ./asterisk/logs:/var/log/asterisk
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETGID
+      - SETUID
+      - NET_BIND_SERVICE
+      - SYS_NICE
     stdin_open: true
     tty: true
     deploy:
