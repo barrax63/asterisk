@@ -32,16 +32,11 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 ├── QUICKREF.md              # Quick reference card and command cheatsheet
 ├── IVR_BUILD.md             # IVR-only build & configuration guide
 ├── verify-ivr-setup.sh      # Automated verification script
-└── asterisk/
-    ├── config/              # Baked into image, seeds /etc/asterisk volume
-    │   ├── README.md        # Configuration templates documentation
-    │   └── modules.conf     # Runtime module configuration template
-    ├── data/                # Mounted to /var/lib/asterisk (sounds, DBs, runtime data)
-    └── logs/                # Mounted to /var/log/asterisk
+└── config/                  # Baked into image, seeds /etc/asterisk volume
 ```
 
-- Place your configuration files (e.g. `pjsip.conf`, `extensions.conf`) in `asterisk/config` before build; they will seed the `asterisk_config` volume.
-- Place custom sound files and other data in `asterisk/data` before build if you want them copied into the image; runtime updates live in the `asterisk_data` volume.
+- Place your configuration files (e.g. `pjsip.conf`, `extensions.conf`) in `config/` before build; they will seed the `asterisk_config` volume.
+- Place custom sound files and other data in `data/` before build if you want them copied into the image; runtime updates live in the `asterisk_data` volume.
 - Logs are written to the `asterisk_logs` volume.
 
 ## Setup Instructions
