@@ -224,7 +224,8 @@ RUN apt-get update && \
         liburiparser1 \
         ca-certificates \
         iproute2 \
-        procps && \
+        procps \
+        gosu && \
     ldconfig && \
     rm -rf /var/lib/apt/lists/*
 
@@ -258,9 +259,10 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Create a dedicated asterisk user/group and fix permissions,
 # and configure the history file location.
 RUN set -eux; \
-    # Create group and user (fixed UID/GID 1000, home at /var/lib/asterisk)
-    groupadd -r -g 1000 "${ASTERISK_GROUP}" && \
-    useradd  -r -u 1000 -d /var/lib/asterisk -g "${ASTERISK_GROUP}" "${ASTERISK_USER}" && \
+    # Create group and user (without fixed UID/GID, home at /var/lib/asterisk)
+    # The entrypoint will dynamically adjust UID/GID based on mounted volumes
+    groupadd -r "${ASTERISK_GROUP}" && \
+    useradd  -r -d /var/lib/asterisk -g "${ASTERISK_GROUP}" "${ASTERISK_USER}" && \
     \
     # Ensure directories exist (COPY above should have created them, but we
     # re-create idempotently in case of future changes)
