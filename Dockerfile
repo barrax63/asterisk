@@ -267,7 +267,7 @@ RUN set -eux; \
     \
     # Ensure directories exist (COPY above should have created them, but we
     # re-create idempotently in case of future changes)
-    mkdir -p /etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
+    mkdir -p /opt/asterisk /etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
     \
     # Set ownership for Asterisk directories
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /etc/asterisk && \
@@ -297,10 +297,6 @@ RUN set -eux; \
     ldconfig
 
 # Volumes for persistent configuration, data and logs inside the container.
-# On the host, docker-compose will bind-mount:
-#   ./asterisk/config -> /etc/asterisk
-#   ./asterisk/data   -> /var/lib/asterisk
-#   ./asterisk/logs   -> /var/log/asterisk
 VOLUME ["/opt/asterisk", "/etc/asterisk", "/var/lib/asterisk", "/var/log/asterisk", "/var/spool/asterisk"]
 
 # Work inside Asterisk data directory
