@@ -248,6 +248,9 @@ RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime && \
 # Copy configuration files
 COPY config/ /etc/asterisk/
 
+# Copy data and sound files
+COPY data/ /var/lib/asterisk/
+
 # Copy entrypoint script for environment variable substitution
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
