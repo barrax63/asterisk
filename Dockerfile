@@ -249,6 +249,10 @@ RUN cp -a /var/lib/asterisk /usr/share/asterisk-runtime && \
 # Copy configuration files
 COPY config/ /etc/asterisk/
 
+# Preserve pristine configuration files for bind-mount restores
+RUN cp -a /etc/asterisk /usr/share/asterisk-config && \
+    chown -R root:root /usr/share/asterisk-config
+
 # Copy data and sound files
 COPY data/ /var/lib/asterisk/
 
