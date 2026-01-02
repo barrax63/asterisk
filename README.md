@@ -161,7 +161,7 @@ For detailed configuration options, verification steps, and customization, see *
   Asterisk logs from `/var/log/asterisk` appear under `./asterisk/logs` on the host, making troubleshooting and log analysis straightforward.
 
 - **Call recordings (MixMonitor)**:  
-  The default dialplan records calls to `/mnt/usb-backup/recordings/${UNIQUEID}.wav`. This path is created in the image and owned by the `asterisk` user. If you want the recordings on the host, mount a writable directory to that path (for example, add `./asterisk/recordings:/mnt/usb-backup/recordings` to `docker-compose.yml` and ensure the host directory is writable by the container UID/GID).
+  The default dialplan records calls to `/opt/asterisk/recordings/${UNIQUEID}.wav`. This path is created in the image and owned by the `asterisk` user and mounted to `./asterisk/recordings`.
 
 ## Maintenance
 
