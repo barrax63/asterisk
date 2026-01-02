@@ -18,6 +18,7 @@ services:
       dockerfile: Dockerfile
     image: barrax63/asterisk:20-latest
     init: true
+    user: "0:0"
     network_mode: host
     restart: unless-stopped
     environment:
