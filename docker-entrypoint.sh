@@ -149,7 +149,62 @@ if [ -n "${DETECTED_UID}" ] && [ -n "${DETECTED_GID}" ]; then
     fi
 fi
 
+PJSIP_PATH="${CONFIG_DIR}/pjsip.conf"
+
+# Replace environment variables in pjsip.conf if they are set
+# This must happen BEFORE changing ownership of /etc/asterisk to avoid permission issues
+if [ -f "${PJSIP_PATH}" ]; then
+    echo "Configuring pjsip.conf with environment variables..."
+    
+    # Create a temporary file for modifications
+    TEMP_PJSIP=$(mktemp)
+    cp "${PJSIP_PATH}" "$TEMP_PJSIP"
+
+    # Replace ASTERISK_USER
+    if [ -n "${ASTERISK_USER}" ]; then
+        sed -i "s/ASTERISK_USER/${ASTERISK_USER}/g" "$TEMP_PJSIP"
+        echo "  - Set ASTERISK_USER"
+    else
+        echo "  - WARNING: ASTERISK_USER not set, using default placeholder"
+    fi
+    
+    # Replace ASTERISK_PASSWORD
+    if [ -n "${ASTERISK_PASSWORD}" ]; then
+        sed -i "s/ASTERISK_PASSWORD/${ASTERISK_PASSWORD}/g" "$TEMP_PJSIP"
+        echo "  - Set ASTERISK_PASSWORD"
+    else
+        echo "  - WARNING: ASTERISK_PASSWORD not set, using default placeholder"
+    fi
+    
+    # Replace ASTERISK_IP
+    if [ -n "${ASTERISK_IP}" ]; then
+        sed -i "s/ASTERISK_IP/${ASTERISK_IP}/g" "$TEMP_PJSIP"
+        echo "  - Set ASTERISK_IP"
+    else
+        echo "  - WARNING: ASTERISK_IP not set, using default placeholder"
+    fi
+    
+    # Replace FRITZBOX_IP
+    if [ -n "${FRITZBOX_IP}" ]; then
+        sed -i "s/FRITZBOX_IP/${FRITZBOX_IP}/g" "$TEMP_PJSIP"
+        echo "  - Set FRITZBOX_IP"
+    else
+        echo "  - WARNING: FRITZBOX_IP not set, using default placeholder"
+    fi
+    
+    # Move the modified file back
+    # Use cat instead of mv to avoid cross-device/permission issues
+    if ! cat "$TEMP_PJSIP" > "${PJSIP_PATH}"; then
+        echo "ERROR: Failed to write modified configuration to ${PJSIP_PATH}"
+        echo "ERROR: Temporary file preserved at: $TEMP_PJSIP"
+        exit 1
+    fi
+    rm -f "$TEMP_PJSIP"
+    echo "pjsip.conf configuration complete."
+fi
+
 # Ensure mounted directories are owned by the asterisk user on startup
+# This happens AFTER pjsip.conf modification to avoid permission conflicts
 if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
     for target in "${CHOWN_TARGETS[@]}"; do
         case "${target}" in
@@ -203,66 +258,6 @@ if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     fi
     
     echo "Documentation successfully restored to ${DOC_TARGET_DIR}"
-fi
-
-PJSIP_PATH="${CONFIG_DIR}/pjsip.conf"
-
-# Replace environment variables in pjsip.conf if they are set
-if [ -f "${PJSIP_PATH}" ]; then
-    echo "Configuring pjsip.conf with environment variables..."
-    
-    # Create a temporary file for modifications
-    TEMP_PJSIP=$(mktemp)
-    cp "${PJSIP_PATH}" "$TEMP_PJSIP"
-
-    # Replace ASTERISK_USER
-    if [ -n "${ASTERISK_USER}" ]; then
-        sed -i "s/ASTERISK_USER/${ASTERISK_USER}/g" "$TEMP_PJSIP"
-        echo "  - Set ASTERISK_USER"
-    else
-        echo "  - WARNING: ASTERISK_USER not set, using default placeholder"
-    fi
-    
-    # Replace ASTERISK_PASSWORD
-    if [ -n "${ASTERISK_PASSWORD}" ]; then
-        sed -i "s/ASTERISK_PASSWORD/${ASTERISK_PASSWORD}/g" "$TEMP_PJSIP"
-        echo "  - Set ASTERISK_PASSWORD"
-    else
-        echo "  - WARNING: ASTERISK_PASSWORD not set, using default placeholder"
-    fi
-    
-    # Replace ASTERISK_IP
-    if [ -n "${ASTERISK_IP}" ]; then
-        sed -i "s/ASTERISK_IP/${ASTERISK_IP}/g" "$TEMP_PJSIP"
-        echo "  - Set ASTERISK_IP"
-    else
-        echo "  - WARNING: ASTERISK_IP not set, using default placeholder"
-    fi
-    
-    # Replace FRITZBOX_IP
-    if [ -n "${FRITZBOX_IP}" ]; then
-        sed -i "s/FRITZBOX_IP/${FRITZBOX_IP}/g" "$TEMP_PJSIP"
-        echo "  - Set FRITZBOX_IP"
-    else
-        echo "  - WARNING: FRITZBOX_IP not set, using default placeholder"
-    fi
-    
-    # Move the modified file back
-    # Use cat instead of mv to avoid cross-device/permission issues
-    if ! cat "$TEMP_PJSIP" > "${PJSIP_PATH}"; then
-        echo "ERROR: Failed to write modified configuration to ${PJSIP_PATH}"
-        echo "ERROR: Temporary file preserved at: $TEMP_PJSIP"
-        exit 1
-    fi
-    rm -f "$TEMP_PJSIP"
-    # Ensure proper ownership after modification
-    if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
-        if ! chown "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${PJSIP_PATH}"; then
-            echo "WARNING: Failed to set ownership for ${PJSIP_PATH}"
-            echo "WARNING: Configuration file was updated but ownership adjustment failed."
-        fi
-    fi
-    echo "pjsip.conf configuration complete."
 fi
 
 CMD_IS_ASTERISK=false
