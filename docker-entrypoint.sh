@@ -35,8 +35,7 @@ if [ "${CONFIG_WRITABLE}" = false ]; then
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        ESCAPED_CONFIG_DIR=${ACTIVE_CONFIG_DIR//&/\\&}
-        ESCAPED_CONFIG_DIR=${ESCAPED_CONFIG_DIR//|/\\|}
+        ESCAPED_CONFIG_DIR=$(printf '%s' "${ACTIVE_CONFIG_DIR}" | sed 's/[\\/|&]/\\&/g')
         sed -i "s|^astetcdir[[:space:]]*=>[[:space:]]*.*|astetcdir => ${ESCAPED_CONFIG_DIR}|" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
     fi
 fi
@@ -90,10 +89,16 @@ fi
 
 # If we had to relocate configs, ensure Asterisk reads from the runtime copy
 USE_RUNTIME_CONFIG=false
+CMD_IS_ASTERISK=false
 
-if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ "$#" -ge 1 ]; then
-    CMD_BASENAME=$(basename "$1")
-    if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ] && [ "${CMD_BASENAME}" = "asterisk" ]; then
+if [ "$#" -ge 1 ]; then
+    case "$1" in
+        asterisk|*/asterisk) CMD_IS_ASTERISK=true ;;
+    esac
+fi
+
+if [ "${ACTIVE_CONFIG_DIR}" != "${CONFIG_DIR}" ] && [ "${CMD_IS_ASTERISK}" = true ]; then
+    if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
         USE_RUNTIME_CONFIG=true
     fi
 fi
