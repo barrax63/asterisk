@@ -197,6 +197,28 @@ If you use AGI scripts for dynamic IVR logic:
 
 ## Verification Steps
 
+### Automated Verification Script
+
+For quick verification, use the provided verification script:
+
+```bash
+# Run the automated verification
+./verify-ivr-setup.sh
+```
+
+This script checks:
+- Container status
+- Asterisk version
+- Loaded codecs (should be only alaw, ulaw, g722)
+- PJSIP modules
+- Absence of legacy channel drivers
+- Absence of non-IVR applications
+- Presence of essential IVR applications
+
+### Manual Verification
+
+If you prefer manual verification or need detailed inspection:
+
 ### 1. Module Verification
 
 After starting the container, verify that only required modules are loaded:

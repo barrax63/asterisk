@@ -1,0 +1,29 @@
+# Asterisk runtime directories - these contain generated/runtime data
+asterisk/data/*
+asterisk/logs/*
+
+# Only keep templates in config, ignore generated configs
+asterisk/config/*
+!asterisk/config/modules.conf
+!asterisk/config/README.md
+
+# Docker and build artifacts
+*.log
+.DS_Store
+*~
+*.swp
+*.swo
+
+# IDE and editor files
+.vscode/
+.idea/
+*.iml
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Temporary files
+/tmp/
+*.tmp

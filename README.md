@@ -28,8 +28,10 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 ├── docker-compose.yml       # Service orchestration
 ├── README.md                # This file
 ├── IVR_BUILD.md             # IVR-only build & configuration guide
+├── verify-ivr-setup.sh      # Automated verification script
 └── asterisk/
     ├── config/              # Mounted to /etc/asterisk
+    │   ├── README.md        # Configuration templates documentation
     │   └── modules.conf     # Runtime module configuration template
     ├── data/                # Mounted to /var/lib/asterisk (sounds, DBs, runtime data)
     └── logs/                # Mounted to /var/log/asterisk
@@ -173,6 +175,12 @@ Adjust these ports in `docker-compose.yml` if you use non‑default values, and 
 ## Verification
 
 After deploying the IVR-only configuration, verify the setup:
+
+### Automated Verification
+```bash
+# Run the verification script
+./verify-ivr-setup.sh
+```
 
 ### Quick Module Check
 ```bash
