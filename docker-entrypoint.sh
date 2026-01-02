@@ -15,9 +15,9 @@ ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 
 if [ -n "${CHOWN_PATHS:-}" ]; then
     CHOWN_TARGETS=()
-    for path in ${CHOWN_PATHS}; do
-        CHOWN_TARGETS+=("${path}")
-    done
+    while IFS= read -r path; do
+        [ -n "${path}" ] && CHOWN_TARGETS+=("${path}")
+    done < <(printf '%s\n' "${CHOWN_PATHS}" | tr ' ,' '\n')
 else
     CHOWN_TARGETS=(/etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk /opt/asterisk)
 fi
@@ -41,7 +41,7 @@ fi
 if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1 && getent group "${ASTERISK_GROUP_NAME}" >/dev/null 2>&1; then
     for target in "${CHOWN_TARGETS[@]}"; do
         if [ -d "${target}" ]; then
-            if chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${target}"; then
+            if chown -Rh "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${target}"; then
                 echo "Ensured ownership for ${target}"
             else
                 echo "Warning: unable to adjust ownership for ${target}"
@@ -67,12 +67,11 @@ if [ "${CONFIG_WRITABLE}" = false ]; then
     ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
     mkdir -p "${ACTIVE_CONFIG_DIR}" || { echo "Failed to create ${ACTIVE_CONFIG_DIR}"; exit 1; }
     # Copy current config, following symlinks (-L) and copying contents of the directory (${CONFIG_DIR}/.)
-    cp -rL "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
+    cp -rP "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
-        ESCAPED_CONFIG_DIR=$(printf '%s' "${ACTIVE_CONFIG_DIR}" | sed 's/[#\\/&]/\\&/g')
-        sed -i "s#^astetcdir[[:space:]]*=>[[:space:]]*.*#astetcdir => ${ESCAPED_CONFIG_DIR}#" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
+        sed -i "/^astetcdir[[:space:]]*=>/c astetcdir => ${ACTIVE_CONFIG_DIR}" "${ACTIVE_CONFIG_DIR}/asterisk.conf"
     fi
 fi
 
