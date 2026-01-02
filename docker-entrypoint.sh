@@ -66,63 +66,40 @@ restore_files_from_stash() {
     
     local restored_count=0
     
-    # Build find command with optional exclusion
+    # Build find command - set up exclusion options if needed
+    local find_cmd="find"
+    local find_args=("${stash_dir}" -mindepth 1)
     if [ -n "${exclude_path}" ]; then
-        # Use find with exclusion for specified path
-        while IFS= read -r -d '' stash_item; do
-            # Get relative path from stash directory
-            local rel_path="${stash_item#"${stash_dir}"/}"
-            local target_item="${target_dir}/${rel_path}"
-            
-            if [ -d "${stash_item}" ]; then
-                # Create directory if it doesn't exist
-                if [ ! -d "${target_item}" ]; then
-                    mkdir -p "${target_item}" 2>/dev/null || {
-                        echo "WARNING: Failed to create directory ${target_item}"
-                        continue
-                    }
-                fi
-            elif [ -f "${stash_item}" ]; then
-                # Copy file only if it doesn't already exist (use -f for regular files)
-                if [ ! -f "${target_item}" ]; then
-                    cp -a "${stash_item}" "${target_item}" 2>/dev/null || {
-                        echo "WARNING: Failed to restore ${rel_path}"
-                        continue
-                    }
-                    restored_count=$((restored_count + 1))
-                    echo "  - Restored: ${rel_path}"
-                fi
-            fi
-        done < <(find "${stash_dir}" -mindepth 1 -not -path "${stash_dir}/${exclude_path}" -not -path "${stash_dir}/${exclude_path}/*" -print0)
-    else
-        # Use find without exclusion
-        while IFS= read -r -d '' stash_item; do
-            # Get relative path from stash directory
-            local rel_path="${stash_item#"${stash_dir}"/}"
-            local target_item="${target_dir}/${rel_path}"
-            
-            if [ -d "${stash_item}" ]; then
-                # Create directory if it doesn't exist
-                if [ ! -d "${target_item}" ]; then
-                    mkdir -p "${target_item}" 2>/dev/null || {
-                        echo "WARNING: Failed to create directory ${target_item}"
-                        continue
-                    }
-                fi
-            elif [ -f "${stash_item}" ]; then
-                # Copy file only if it doesn't already exist (use -f for regular files)
-                if [ ! -f "${target_item}" ]; then
-                    cp -a "${stash_item}" "${target_item}" 2>/dev/null || {
-                        echo "WARNING: Failed to restore ${rel_path}"
-                        continue
-                    }
-                    restored_count=$((restored_count + 1))
-                    echo "  - Restored: ${rel_path}"
-                fi
-            fi
-        done < <(find "${stash_dir}" -mindepth 1 -print0)
+        find_args+=(-not -path "${stash_dir}/${exclude_path}" -not -path "${stash_dir}/${exclude_path}/*")
     fi
-
+    find_args+=(-print0)
+    
+    # Iterate through all files and directories in the stash (excluding specified paths if any)
+    while IFS= read -r -d '' stash_item; do
+        # Get relative path from stash directory
+        local rel_path="${stash_item#"${stash_dir}"/}"
+        local target_item="${target_dir}/${rel_path}"
+        
+        if [ -d "${stash_item}" ]; then
+            # Create directory if it doesn't exist
+            if [ ! -d "${target_item}" ]; then
+                mkdir -p "${target_item}" 2>/dev/null || {
+                    echo "WARNING: Failed to create directory ${target_item}"
+                    continue
+                }
+            fi
+        elif [ -f "${stash_item}" ]; then
+            # Copy file only if it doesn't already exist (use -f for regular files)
+            if [ ! -f "${target_item}" ]; then
+                cp -a "${stash_item}" "${target_item}" 2>/dev/null || {
+                    echo "WARNING: Failed to restore ${rel_path}"
+                    continue
+                }
+                restored_count=$((restored_count + 1))
+                echo "  - Restored: ${rel_path}"
+            fi
+        fi
+    done < <("${find_cmd}" "${find_args[@]}")
     
     # Set ownership to asterisk user if account is present
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
