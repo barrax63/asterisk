@@ -212,7 +212,7 @@ if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
     for target in "${CHOWN_TARGETS[@]}"; do
         case "${target}" in
             /etc/asterisk*|/var/lib/asterisk*|/var/log/asterisk*|/var/spool/asterisk*|/opt/asterisk*|/var/run/asterisk*)
-                # Create directory if it doesn't exist (especially for /var/run/asterisk in tmpfs)
+                # Create directory if it doesn't exist
                 if [ ! -d "${target}" ]; then
                     mkdir -p "${target}" 2>/dev/null || true
                 fi
