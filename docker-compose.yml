@@ -6,7 +6,6 @@ x-logging: &default-logging
 
 x-security-baseline: &security-baseline
   security_opt:
-    - no-new-privileges:true
     - apparmor=docker-default
   cap_drop:
     - ALL
