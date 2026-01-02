@@ -18,7 +18,9 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 - **Security Baseline**: Designed to work with a hardened `docker-compose.yml` (no-new-privileges, dropped capabilities, AppArmor profile).
 - **Resource Limits**: CPU and memory constraints in `docker-compose.yml` to avoid resource exhaustion.
 
-> **📘 IVR Build Guide**: For detailed information about the lean IVR-only configuration, including build options, runtime safeguards, and verification procedures, see [IVR_BUILD.md](IVR_BUILD.md).
+> **📘 Documentation**: 
+> - **Quick Reference**: [QUICKREF.md](QUICKREF.md) - Command cheatsheet and quick troubleshooting
+> - **Detailed Guide**: [IVR_BUILD.md](IVR_BUILD.md) - Complete build, configuration, and verification guide
 
 ## Directory Structure
 
@@ -27,6 +29,7 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 ├── Dockerfile               # Asterisk container build instructions
 ├── docker-compose.yml       # Service orchestration
 ├── README.md                # This file
+├── QUICKREF.md              # Quick reference card and command cheatsheet
 ├── IVR_BUILD.md             # IVR-only build & configuration guide
 ├── verify-ivr-setup.sh      # Automated verification script
 └── asterisk/
