@@ -10,11 +10,25 @@ ACTIVE_CONFIG_DIR="${CONFIG_DIR}"
 CONFIG_WRITABLE=true
 PJSIP_ORIGINAL="${CONFIG_DIR}/pjsip.conf"
 PJSIP_WRITABLE=true
+ASTERISK_USER_NAME="${ASTERISK_USER:-asterisk}"
+ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
+CHOWN_TARGETS="/etc/asterisk /var/lib/asterisk /var/log/asterisk /var/spool/asterisk /opt/asterisk"
 
 if [ ! -d "${CONFIG_DIR}" ]; then
     echo "Config directory ${CONFIG_DIR} not found."
     exit 1
 fi
+
+# Ensure mounted directories are owned by the asterisk user on startup
+for target in ${CHOWN_TARGETS}; do
+    if [ -d "${target}" ]; then
+        if chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${target}"; then
+            echo "Ensured ownership for ${target}"
+        else
+            echo "Warning: unable to adjust ownership for ${target}"
+        fi
+    fi
+done
 
 # If the mounted config directory isn't writable (common with bind mounts),
 # work on a runtime copy we can modify.
