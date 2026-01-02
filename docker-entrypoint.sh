@@ -76,7 +76,11 @@ if [ -d "${DOC_STASH_DIR}" ]; then
         echo "Restoring Asterisk documentation into ${DOC_TARGET_DIR}..."
         mkdir -p "${DOC_TARGET_DIR}"
         cp -a "${DOC_STASH_DIR}/." "${DOC_TARGET_DIR}/"
-        chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}"
+        if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
+            chown -R "${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME}" "${DOC_TARGET_DIR}"
+        else
+            echo "Warning: user/group ${ASTERISK_USER_NAME}:${ASTERISK_GROUP_NAME} not found; skipping documentation ownership adjustments"
+        fi
     fi
 fi
 
