@@ -10,11 +10,11 @@ ACTIVE_CONFIG_DIR="${CONFIG_DIR}"
 
 # If the mounted config directory isn't writable (common with bind mounts),
 # work on a runtime copy we can modify.
-if [ ! -w "${CONFIG_DIR}" ] || [ ! -w "${CONFIG_DIR}/pjsip.conf" ]; then
+if [ ! -w "${CONFIG_DIR}" ] || { [ -f "${CONFIG_DIR}/pjsip.conf" ] && [ ! -w "${CONFIG_DIR}/pjsip.conf" ]; }; then
     echo "Config directory not writable, using runtime copy at ${RUNTIME_CONFIG_DIR}..."
     ACTIVE_CONFIG_DIR="${RUNTIME_CONFIG_DIR}"
     mkdir -p "${ACTIVE_CONFIG_DIR}"
-    cp -R "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
+    cp -RL "${CONFIG_DIR}/." "${ACTIVE_CONFIG_DIR}/"
     chmod -R u+w "${ACTIVE_CONFIG_DIR}"
 
     if [ -f "${ACTIVE_CONFIG_DIR}/asterisk.conf" ]; then
