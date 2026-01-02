@@ -105,11 +105,10 @@ RUN apt-get update && \
       --disable app_dumpchan \
       --disable app_externalivr \
       --disable app_followme \
-      --disable app_forkcdr \
-      --disable app_ices \
-      --disable app_image \
-      --disable app_mixmonitor \
-      --disable app_nbscat \
+       --disable app_forkcdr \
+       --disable app_ices \
+       --disable app_image \
+       --disable app_nbscat \
       --disable app_page \
       --disable app_record \
       --disable app_sms \
@@ -286,6 +285,10 @@ RUN set -eux; \
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /etc/asterisk && \
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /var/lib/asterisk /var/log/asterisk /var/spool/asterisk && \
     chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /usr/lib/asterisk && \
+    \
+    # Prepare call recording path used by the dialplan
+    mkdir -p /mnt/usb-backup/recordings && \
+    chown -R "${ASTERISK_USER}:${ASTERISK_GROUP}" /mnt/usb-backup && \
     \
     # Enable runuser/rungroup in /etc/asterisk/asterisk.conf
     sed -i 's/;runuser/runuser/g'   /etc/asterisk/asterisk.conf && \

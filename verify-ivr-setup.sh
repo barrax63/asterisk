@@ -122,7 +122,7 @@ echo
 
 # Check for IVR essential applications
 echo -e "${BLUE}[7/7] Checking for IVR essential applications...${NC}"
-ESSENTIAL_APPS="app_playback app_background app_read app_stack app_dial"
+ESSENTIAL_APPS="app_playback app_background app_read app_stack app_dial app_mixmonitor"
 MISSING_APPS=""
 
 for app in $ESSENTIAL_APPS; do
