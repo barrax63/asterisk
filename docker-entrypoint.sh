@@ -35,10 +35,18 @@ show_doc_permission_error() {
 
 # Generic function to restore files from stash directory to target directory
 # Only copies files that don't already exist in the target (preserves user customizations)
+# Parameters:
+#   $1 - stash_dir: Source directory containing files to restore
+#   $2 - target_dir: Destination directory where files should be restored
+#   $3 - description: Human-readable description for logging
+#   $4 - exclude_path: Optional relative path to exclude from restoration (e.g., "documentation")
+# Returns:
+#   0 on success, 1 on failure
 restore_files_from_stash() {
     local stash_dir="$1"
     local target_dir="$2"
     local description="$3"
+    local exclude_path="${4:-}"
     
     if [ ! -d "${stash_dir}" ]; then
         echo "Warning: Stash directory ${stash_dir} does not exist, skipping restoration"
@@ -56,8 +64,14 @@ restore_files_from_stash() {
     fi
     
     local restored_count=0
+    local find_opts=(-mindepth 1 -print0)
     
-    # Iterate through all files and directories in the stash
+    # Add exclusion if specified
+    if [ -n "${exclude_path}" ]; then
+        find_opts+=(-not -path "${stash_dir}/${exclude_path}" -not -path "${stash_dir}/${exclude_path}/*")
+    fi
+    
+    # Iterate through all files and directories in the stash (excluding specified paths)
     while IFS= read -r -d '' stash_item; do
         # Get relative path from stash directory
         local rel_path="${stash_item#"${stash_dir}"/}"
@@ -82,7 +96,7 @@ restore_files_from_stash() {
                 echo "  - Restored: ${rel_path}"
             fi
         fi
-    done < <(find "${stash_dir}" -mindepth 1 -print0)
+    done < <(find "${stash_dir}" "${find_opts[@]}")
     
     # Set ownership to asterisk user if account is present
     if [ "${ASTERISK_ACCOUNT_PRESENT}" = true ]; then
@@ -223,7 +237,8 @@ fi
 # This happens AFTER UID/GID adjustment and BEFORE pjsip.conf substitution
 # so that restored pjsip.conf will have environment variables applied
 restore_files_from_stash "${CONFIG_STASH_DIR}" "${CONFIG_DIR}" "configuration"
-restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data"
+# Exclude 'documentation' from data restoration as it's handled separately below
+restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "documentation"
 
 PJSIP_PATH="${CONFIG_DIR}/pjsip.conf"
 
