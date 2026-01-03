@@ -223,7 +223,7 @@ if [ -f "${PJSIP_STASH_PATH}" ]; then
     if [ ! -f "${PJSIP_PATH}" ]; then
         echo "pjsip.conf missing in ${CONFIG_TARGET_DIR}, restoring from image template..."
         cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"
-    elif grep -q "fritz\.box" "${PJSIP_PATH}"; then
+    elif grep -Eq "sip:[^[:space:]]*fritz\\.box" "${PJSIP_PATH}"; then
         echo "Detected legacy fritz.box entries in pjsip.conf; refreshing from image template..."
         cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"
     fi
