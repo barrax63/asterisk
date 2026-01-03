@@ -13,14 +13,12 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
   - `asterisk_config` seeds from baked config in the image into `/etc/asterisk`.
   - `asterisk_data` persists `/var/lib/asterisk` runtime data and sounds.
   - `asterisk_logs` persists `/var/log/asterisk` logs.
+  - `asterisk_recordings` persists `/opt/asterisk/recordings` recordings.
 - **Non‑Root Execution**: Asterisk runs as the dedicated `asterisk` user with adjusted directory ownership and permissions.
 - **History File Integration**: Asterisk CLI history is stored in a writable directory owned by the `asterisk` user.
 - **Health Checks**: A Docker health check uses the Asterisk CLI to verify that the daemon is up and responsive.
 - **Security Baseline**: Designed to work with a hardened `docker-compose.yml` (no-new-privileges, dropped capabilities, AppArmor profile).
 - **Resource Limits**: CPU and memory constraints in `docker-compose.yml` to avoid resource exhaustion.
-
-> **📘 Documentation**: 
-> - **Detailed Guide**: [IVR_BUILD.md](IVR_BUILD.md) - Complete build, configuration, and verification guide
 
 ## Directory Structure
 
@@ -29,9 +27,7 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 ├── Dockerfile               # Asterisk container build instructions
 ├── docker-compose.yml       # Service orchestration (named volumes)
 ├── README.md                # This file
-├── QUICKREF.md              # Quick reference card and command cheatsheet
 ├── IVR_BUILD.md             # IVR-only build & configuration guide
-├── verify-ivr-setup.sh      # Automated verification script
 ├── config/                  # Baked into image, seeds /etc/asterisk volume
 └── data/                    # Baked into image, seeds /var/lib/asterisk volume
 ```
@@ -134,8 +130,6 @@ docker compose restart asterisk
 
 **Note**: The lean IVR-only configuration is pre-applied. The image includes only essential modules for PJSIP-based IVR with alaw/ulaw/g722 codecs. All configuration files (modules.conf, pjsip.conf, extensions.conf) are baked into the image at build time.
 
-For detailed configuration options, verification steps, and customization, see **[IVR_BUILD.md](IVR_BUILD.md)**.
-
 ## Accessing Configuration, Data and Logs
 
 - **Configuration files**:  
@@ -207,4 +201,4 @@ Adjust these ports in `docker-compose.yml` if you use non‑default values, and 
 6. **Network Exposure**: Only expose SIP/RTP ports to the networks that actually need access (e.g. internal VoIP subnets, VPNs).
 7. **Minimal Attack Surface**: The IVR-only build disables unused channel drivers, codecs, and applications at both build-time and runtime, significantly reducing the attack surface.
 
-> **🔒 Security Note**: This image disables ARI, removes legacy protocols (chan_sip, IAX2), and strips voicemail/conferencing features by default. For additional hardening options, see [IVR_BUILD.md](IVR_BUILD.md#security-hardening).
+> **🔒 Security Note**: This image disables ARI, removes legacy protocols (chan_sip, IAX2), and strips voicemail/conferencing features by default.
