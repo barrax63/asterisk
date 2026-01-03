@@ -220,11 +220,15 @@ PJSIP_PATH="${CONFIG_TARGET_DIR}/pjsip.conf"
 PJSIP_STASH_PATH="${CONFIG_STASH_DIR}/pjsip.conf"
 
 if [ -f "${PJSIP_STASH_PATH}" ]; then
+    REFRESH_PJSIP=false
     if [ ! -f "${PJSIP_PATH}" ]; then
         echo "pjsip.conf missing in ${CONFIG_TARGET_DIR}, restoring from image template..."
-        cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"
-    elif grep -Eq "sip:[^[:space:]]*fritz\\.box" "${PJSIP_PATH}"; then
+        REFRESH_PJSIP=true
+    elif grep -Eq "sip:([^[:space:]@]+@)?fritz\\.box(:[0-9]+)?" "${PJSIP_PATH}"; then
         echo "Detected legacy fritz.box entries in pjsip.conf; refreshing from image template..."
+        REFRESH_PJSIP=true
+    fi
+    if [ "${REFRESH_PJSIP}" = true ]; then
         cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"
     fi
 fi
