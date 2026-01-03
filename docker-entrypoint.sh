@@ -217,6 +217,17 @@ restore_files_from_stash "${CONFIG_STASH_DIR}" "${CONFIG_TARGET_DIR}" "configura
 restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "documentation"
 
 PJSIP_PATH="${CONFIG_TARGET_DIR}/pjsip.conf"
+PJSIP_STASH_PATH="${CONFIG_STASH_DIR}/pjsip.conf"
+
+if [ -f "${PJSIP_STASH_PATH}" ]; then
+    if [ ! -f "${PJSIP_PATH}" ]; then
+        echo "pjsip.conf missing in ${CONFIG_TARGET_DIR}, restoring from image template..."
+        cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"
+    elif grep -q "fritz\.box" "${PJSIP_PATH}"; then
+        echo "Detected legacy fritz.box entries in pjsip.conf; refreshing from image template..."
+        cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"
+    fi
+fi
 
 # Replace environment variables in pjsip.conf if they are set
 # This must happen BEFORE changing ownership of /etc/asterisk to avoid permission issues
