@@ -10,6 +10,7 @@ ASTERISK_GROUP_NAME="${ASTERISK_GROUP:-asterisk}"
 ASTERISK_ACCOUNT_PRESENT=false
 ASTERISK_UID=""
 ASTERISK_GID=""
+ASTERISK_DISABLE_IPV6="${ASTERISK_DISABLE_IPV6:-true}"
 CONFIG_STASH_DIR="/usr/share/asterisk-config"
 CONFIG_TARGET_DIR="/etc/asterisk"
 DATA_STASH_DIR="/usr/share/asterisk-runtime"
@@ -30,6 +31,35 @@ show_doc_permission_error() {
         echo "ERROR: For example: sudo chown -R ${ASTERISK_UID}:${ASTERISK_GID} ./asterisk/data"
     else
         echo "ERROR: Please ensure the host directory has appropriate permissions."
+    fi
+}
+
+disable_ipv6_for_asterisk() {
+    local disable_flag="${1,,}"
+    local tmp_resolv
+
+    if [ "${disable_flag}" != "true" ]; then
+        return
+    fi
+
+    if [ -f /etc/gai.conf ]; then
+        if grep -Eq '^[[:space:]]*#?[[:space:]]*precedence[[:space:]]+::ffff:0:0/96[[:space:]]+100' /etc/gai.conf; then
+            sed -i 's/^[[:space:]]*#\?[[:space:]]*precedence[[:space:]]\+::ffff:0:0\/96[[:space:]]\+100/precedence ::ffff:0:0\/96 100/' /etc/gai.conf || true
+        else
+            echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf
+        fi
+    else
+        echo 'precedence ::ffff:0:0/96 100' > /etc/gai.conf
+    fi
+
+    if [ -f /etc/resolv.conf ]; then
+        tmp_resolv=$(mktemp)
+        awk '!/^nameserver/ || $2 ~ /^([0-9]{1,3}\.){3}[0-9]{1,3}$/' /etc/resolv.conf > "${tmp_resolv}"
+        if grep -Eq '^nameserver[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}$' "${tmp_resolv}"; then
+            cp "${tmp_resolv}" /etc/resolv.conf
+            echo "IPv6 disabled for Asterisk DNS resolution; using IPv4 nameservers from host"
+        fi
+        rm -f "${tmp_resolv}"
     fi
 }
 
@@ -119,6 +149,8 @@ if getent passwd "${ASTERISK_USER_NAME}" >/dev/null 2>&1 && getent group "${ASTE
     ASTERISK_UID=$(id -u "${ASTERISK_USER_NAME}")
     ASTERISK_GID=$(id -g "${ASTERISK_USER_NAME}")
 fi
+
+disable_ipv6_for_asterisk "${ASTERISK_DISABLE_IPV6}"
 
 # Dynamically detect UID/GID from mounted volumes and adjust user/group accordingly
 # This prevents permission errors when using Docker volumes with different host UID/GID

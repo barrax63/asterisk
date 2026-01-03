@@ -19,6 +19,7 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 - **Health Checks**: A Docker health check uses the Asterisk CLI to verify that the daemon is up and responsive.
 - **Security Baseline**: Designed to work with a hardened `docker-compose.yml` (no-new-privileges, dropped capabilities, AppArmor profile).
 - **Resource Limits**: CPU and memory constraints in `docker-compose.yml` to avoid resource exhaustion.
+- **Host DNS with IPv4 resolution**: Uses the host-provided DNS servers by default while disabling IPv6 for Asterisk. Set `ASTERISK_DISABLE_IPV6=false` if you need IPv6.
 
 ## Directory Structure
 
