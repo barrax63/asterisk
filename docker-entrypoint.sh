@@ -21,6 +21,8 @@ XMLDOC_RELOAD_RETRIES=10
 
 # Minimum UID/GID for non-system users (system users/groups are below this threshold)
 SYSTEM_UID_GID_MAX=999
+# Regex for validating IPv4 addresses (octets 0-255: 25x, 2[0-4]x, or 0-199 via [01]?[0-9]?[0-9])
+IPV4_REGEX='((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])'
 
 show_doc_permission_error() {
     local operation=$1
@@ -37,29 +39,38 @@ show_doc_permission_error() {
 disable_ipv6_for_asterisk() {
     local disable_flag="${1,,}"
     local tmp_resolv
+    # Match commented or uncommented precedence lines for IPv4-mapped IPv6 addresses
+    local precedence_grep_pattern='^[[:space:]]*#?[[:space:]]*precedence[[:space:]]+::ffff:0:0/96[[:space:]]+100'
+    local precedence_line='precedence ::ffff:0:0/96 100'
+    local resolv_backup="/etc/resolv.conf.bak"
 
     if [ "${disable_flag}" != "true" ]; then
         return
     fi
 
     if [ -f /etc/gai.conf ]; then
-        if grep -Eq '^[[:space:]]*#?[[:space:]]*precedence[[:space:]]+::ffff:0:0/96[[:space:]]+100' /etc/gai.conf; then
-            sed -i 's/^[[:space:]]*#\?[[:space:]]*precedence[[:space:]]\+::ffff:0:0\/96[[:space:]]\+100/precedence ::ffff:0:0\/96 100/' /etc/gai.conf || true
+        if grep -Eq "${precedence_grep_pattern}" /etc/gai.conf; then
+            sed -Ei "s!${precedence_grep_pattern}[[:space:]]*$!${precedence_line}!" /etc/gai.conf
         else
-            echo 'precedence ::ffff:0:0/96 100' >> /etc/gai.conf
+            echo "${precedence_line}" >> /etc/gai.conf
         fi
     else
-        echo 'precedence ::ffff:0:0/96 100' > /etc/gai.conf
+        echo "${precedence_line}" > /etc/gai.conf
     fi
 
     if [ -f /etc/resolv.conf ]; then
-        tmp_resolv=$(mktemp)
-        awk '!/^nameserver/ || $2 ~ /^([0-9]{1,3}\.){3}[0-9]{1,3}$/' /etc/resolv.conf > "${tmp_resolv}"
-        if grep -Eq '^nameserver[[:space:]]+([0-9]{1,3}\.){3}[0-9]{1,3}$' "${tmp_resolv}"; then
+        local ipv4_pattern="${IPV4_REGEX}"
+        trap '[ -n "$tmp_resolv" ] && rm -f "$tmp_resolv"; trap - EXIT RETURN' EXIT RETURN
+        tmp_resolv=$(mktemp --mode=600)
+        # Keep every non-nameserver line, and only retain nameserver lines with valid IPv4 addresses
+        awk -v ipv4_regex="${ipv4_pattern}" '!/^nameserver/ || (NF >= 2 && $2 ~ "^" ipv4_regex "$")' /etc/resolv.conf > "${tmp_resolv}"
+        if grep -Eq "^nameserver[[:space:]]+${ipv4_pattern}$" "${tmp_resolv}"; then
+            cp /etc/resolv.conf "${resolv_backup}"
             cp "${tmp_resolv}" /etc/resolv.conf
-            echo "IPv6 disabled for Asterisk DNS resolution; using IPv4 nameservers from host"
+            echo "IPv6 disabled for Asterisk DNS resolution; using IPv4 nameservers from host (backup at ${resolv_backup})"
+        else
+            echo "Warning: No IPv4 nameservers detected; IPv6 DNS entries retained"
         fi
-        rm -f "${tmp_resolv}"
     fi
 }
 
