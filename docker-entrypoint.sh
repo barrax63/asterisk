@@ -218,17 +218,12 @@ restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "docume
 
 PJSIP_PATH="${CONFIG_TARGET_DIR}/pjsip.conf"
 PJSIP_STASH_PATH="${CONFIG_STASH_DIR}/pjsip.conf"
-LEGACY_FRITZBOX_PATTERN='sip:(fritz\.box|[a-zA-Z0-9._-]+@fritz\.box)(:[0-9]+)?'
 
 if [ -f "${PJSIP_STASH_PATH}" ]; then
     REFRESH_PJSIP=false
     if [ ! -f "${PJSIP_PATH}" ]; then
         echo "pjsip.conf missing in ${CONFIG_TARGET_DIR}, restoring from image template..."
         REFRESH_PJSIP=true
-    elif grep -Eq "${LEGACY_FRITZBOX_PATTERN}" "${PJSIP_PATH}"; then
-        echo "Detected legacy fritz.box entries in pjsip.conf; refreshing from image template..."
-        REFRESH_PJSIP=true
-    fi
     if [ "${REFRESH_PJSIP}" = true ]; then
         if ! cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"; then
             echo "ERROR: Failed to refresh pjsip.conf from template at ${PJSIP_STASH_PATH}. Check file permissions and available disk space."
