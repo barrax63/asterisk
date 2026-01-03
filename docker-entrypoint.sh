@@ -217,6 +217,20 @@ restore_files_from_stash "${CONFIG_STASH_DIR}" "${CONFIG_TARGET_DIR}" "configura
 restore_files_from_stash "${DATA_STASH_DIR}" "${DATA_TARGET_DIR}" "data" "documentation"
 
 PJSIP_PATH="${CONFIG_TARGET_DIR}/pjsip.conf"
+PJSIP_STASH_PATH="${CONFIG_STASH_DIR}/pjsip.conf"
+
+if [ -f "${PJSIP_STASH_PATH}" ]; then
+    REFRESH_PJSIP=false
+    if [ ! -f "${PJSIP_PATH}" ]; then
+        echo "pjsip.conf missing in ${CONFIG_TARGET_DIR}, restoring from image template..."
+        REFRESH_PJSIP=true
+    if [ "${REFRESH_PJSIP}" = true ]; then
+        if ! cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"; then
+            echo "ERROR: Failed to refresh pjsip.conf from template at ${PJSIP_STASH_PATH}. Check file permissions and available disk space."
+            exit 1
+        fi
+    fi
+fi
 
 # Replace environment variables in pjsip.conf if they are set
 # This must happen BEFORE changing ownership of /etc/asterisk to avoid permission issues
