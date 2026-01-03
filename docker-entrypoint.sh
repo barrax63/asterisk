@@ -224,13 +224,13 @@ if [ -f "${PJSIP_STASH_PATH}" ]; then
     if [ ! -f "${PJSIP_PATH}" ]; then
         echo "pjsip.conf missing in ${CONFIG_TARGET_DIR}, restoring from image template..."
         REFRESH_PJSIP=true
-    elif grep -Eq "sip:(fritz\\.box|[^[:space:]@]+@fritz\\.box)(:[0-9]+)?" "${PJSIP_PATH}"; then
+    elif grep -Eq "sip:(fritz\\.box|[a-zA-Z0-9._-]+@fritz\\.box)(:[0-9]+)?" "${PJSIP_PATH}"; then
         echo "Detected legacy fritz.box entries in pjsip.conf; refreshing from image template..."
         REFRESH_PJSIP=true
     fi
     if [ "${REFRESH_PJSIP}" = true ]; then
         if ! cp -f "${PJSIP_STASH_PATH}" "${PJSIP_PATH}"; then
-            echo "WARNING: Failed to refresh pjsip.conf from template at ${PJSIP_STASH_PATH}"
+            echo "WARNING: Failed to refresh pjsip.conf from template at ${PJSIP_STASH_PATH}. Check file permissions and available disk space."
         fi
     fi
 fi
