@@ -26,6 +26,9 @@ services:
     init: true
     user: "0:0"
     network_mode: host
+    dns:
+      - 1.1.1.1
+      - 1.0.0.1
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
@@ -49,6 +52,7 @@ services:
       - SETUID
       - NET_BIND_SERVICE
       - SYS_NICE
+      - DAC_OVERRIDE
     stdin_open: true
     tty: true
     healthcheck:
