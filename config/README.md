@@ -95,5 +95,3 @@ docker compose exec asterisk asterisk -rx "core show codecs"
 docker compose exec asterisk asterisk -rx "pjsip show endpoints"
 docker compose exec asterisk asterisk -rx "pjsip show registrations"
 ```
-
-For comprehensive documentation, see [IVR_BUILD.md](../IVR_BUILD.md).
