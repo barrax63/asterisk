@@ -17,6 +17,8 @@ DATA_TARGET_DIR="/var/lib/asterisk"
 DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
 DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
+NGINX_CONF_DIR="/etc/nginx/conf.d"
+RECORDINGS_HTTP_PORT="${RECORDINGS_HTTP_PORT:-6000}"
 
 # Minimum UID/GID for non-system users (system users/groups are below this threshold)
 SYSTEM_UID_GID_MAX=999
@@ -347,6 +349,34 @@ if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     fi
     
     echo "Documentation successfully restored to ${DOC_TARGET_DIR}"
+fi
+
+if command -v nginx >/dev/null 2>&1; then
+    mkdir -p "${NGINX_CONF_DIR}"
+    rm -f /etc/nginx/sites-enabled/default
+    cat > "${NGINX_CONF_DIR}/recordings.conf" <<EOF
+server {
+    listen ${RECORDINGS_HTTP_PORT} default_server;
+    listen [::]:${RECORDINGS_HTTP_PORT} default_server;
+
+    root /opt/asterisk/recordings;
+
+    autoindex on;
+    autoindex_exact_size off;
+    autoindex_localtime on;
+
+    location / {
+        try_files \$uri \$uri/ =404;
+    }
+}
+EOF
+
+    if nginx -t; then
+        nginx -s reload >/dev/null 2>&1 || nginx
+        echo "Started nginx to serve /opt/asterisk/recordings on port ${RECORDINGS_HTTP_PORT}"
+    else
+        echo "WARNING: nginx configuration invalid, skipping nginx startup."
+    fi
 fi
 
 CMD_IS_ASTERISK=false

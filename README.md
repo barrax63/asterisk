@@ -14,6 +14,7 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
   - `asterisk_data` persists `/var/lib/asterisk` runtime data and sounds.
   - `asterisk_logs` persists `/var/log/asterisk` logs.
   - `asterisk_recordings` persists `/opt/asterisk/recordings` recordings.
+- **HTTP Access to Recordings**: Built-in nginx serves `/opt/asterisk/recordings` over HTTP (default port `6000`, configurable via `.env`).
 - **Non‑Root Execution**: Asterisk runs as the dedicated `asterisk` user with adjusted directory ownership and permissions.
 - **History File Integration**: Asterisk CLI history is stored in a writable directory owned by the `asterisk` user.
 - **Health Checks**: A Docker health check uses the Asterisk CLI to verify that the daemon is up and responsive.
@@ -70,6 +71,9 @@ ASTERISK_IP=192.168.1.100
 
 # FritzBox IP Address
 FRITZBOX_IP=192.168.1.1
+
+# HTTP port for downloading call recordings
+RECORDINGS_HTTP_PORT=6000
 ```
 
 ### 4. Prepare Configuration (optional)
@@ -132,7 +136,7 @@ docker compose restart asterisk
   Persisted in the `asterisk_logs` volume at `/var/log/asterisk`. View with `docker compose logs asterisk` or by exec/cp from the volume.
 
 - **Call recordings (MixMonitor)**:  
-  The default dialplan records calls to `/opt/asterisk/recordings/${UNIQUEID}.wav`. This path is created in the image and owned by the `asterisk` user and mounted to `./asterisk/recordings`.
+  The default dialplan records calls to `/opt/asterisk/recordings/${UNIQUEID}.wav`. This path is created in the image and owned by the `asterisk` user and mounted to `./asterisk/recordings`. An embedded nginx server exposes the directory over HTTP at `http://<host>:${RECORDINGS_HTTP_PORT:-6000}/` for easy downloads.
 
 ## Maintenance
 
@@ -160,6 +164,7 @@ To add or update sound files or other data used by Asterisk:
 | 5060         | TCP      | SIP signalling                      |
 | 5060         | UDP      | SIP signalling                      |
 | 10000–20000  | UDP      | UDP port range used by Asterisk RTP |
+| 6000         | TCP      | HTTP access to call recordings      |
 
 Adjust these ports in `docker-compose.yml` if you use non‑default values, and make sure your firewall configuration matches.
 

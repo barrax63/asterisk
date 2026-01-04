@@ -226,6 +226,7 @@ RUN apt-get update && \
         iproute2 \
         procps \
         rsync \
+        nginx-light \
         gosu && \
     ldconfig && \
     rm -rf /var/lib/apt/lists/*
@@ -309,6 +310,7 @@ WORKDIR /var/lib/asterisk
 
 # SIP signalling and RTP ports
 EXPOSE 5060/tcp 5060/udp 10000-20000/udp
+EXPOSE 6000/tcp
 
 # Entrypoint runs as root and drops privileges to asterisk user when launching Asterisk
 # This allows the entrypoint to handle bind-mount permissions and documentation restoration
