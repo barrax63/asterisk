@@ -366,17 +366,12 @@ server {
     autoindex_localtime on;
     add_header X-Content-Type-Options nosniff;
     add_header X-Frame-Options DENY;
-    add_header X-XSS-Protection '1; mode=block';
-
-    location ~* \.wav$ {
-        try_files \$uri =404;
-    }
 
     location / {
         try_files \$uri \$uri/ =404;
     }
 
-    location ~* \.[^/]+$ {
+    location ~* \.(php|sh|pl|py|rb|exe|bat)$ {
         return 403;
     }
 }
