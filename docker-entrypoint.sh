@@ -366,9 +366,14 @@ server {
     autoindex_localtime on;
     add_header X-Content-Type-Options nosniff;
     add_header X-Frame-Options DENY;
+    add_header X-XSS-Protection '1; mode=block';
 
     location / {
         try_files \$uri \$uri/ =404;
+    }
+
+    location ~* \.(?!wav$).*$ {
+        return 403;
     }
 }
 EOF
@@ -377,6 +382,7 @@ EOF
         if pgrep nginx >/dev/null 2>&1; then
             if ! nginx -s reload; then
                 echo "WARNING: nginx reload failed, attempting restart."
+                nginx -s stop || true
                 nginx -g 'daemon on;'
             fi
         else
