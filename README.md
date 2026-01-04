@@ -34,6 +34,7 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 If you are using UFW on the host, open the relevant ports for Asterisk:
 
 ```bash
+sudo ufw allow 8080/tcp
 sudo ufw allow 5060/tcp
 sudo ufw allow 5060/udp
 sudo ufw allow 10000:20000/udp
@@ -181,7 +182,7 @@ To add or update sound files or other data used by Asterisk:
 | 5060         | TCP      | SIP signalling                      |
 | 5060         | UDP      | SIP signalling                      |
 | 10000–20000  | UDP      | UDP port range used by Asterisk RTP |
-| 6000         | TCP      | HTTP access to call recordings      |
+| 8080         | TCP      | HTTP access to call recordings      |
 
 Adjust these ports in `docker-compose.yml` if you use non‑default values, and make sure your firewall configuration matches.
 

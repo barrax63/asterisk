@@ -36,7 +36,7 @@ services:
       - ASTERISK_PASSWORD=${ASTERISK_PASSWORD}
       - ASTERISK_IP=${ASTERISK_IP}
       - FRITZBOX_IP=${FRITZBOX_IP}
-      - RECORDINGS_HTTP_PORT=${RECORDINGS_HTTP_PORT:-6000}
+      - RECORDINGS_HTTP_PORT=${RECORDINGS_HTTP_PORT}
     volumes:
       # Asterisk configuration
       - asterisk_config:/etc/asterisk

@@ -312,7 +312,7 @@ WORKDIR /var/lib/asterisk
 EXPOSE 5060/tcp 5060/udp 10000-20000/udp
 
 # Web server port
-EXPOSE 6000/tcp
+EXPOSE 8080/tcp
 
 # Entrypoint runs as root and drops privileges to asterisk user when launching Asterisk
 # This allows the entrypoint to handle bind-mount permissions and documentation restoration

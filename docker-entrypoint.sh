@@ -18,7 +18,7 @@ DOC_STASH_DIR="/usr/share/asterisk-runtime/documentation"
 DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
 NGINX_CONF_DIR="/etc/nginx/conf.d"
-RECORDINGS_HTTP_PORT="${RECORDINGS_HTTP_PORT:-6000}"
+RECORDINGS_HTTP_PORT="${RECORDINGS_HTTP_PORT:-8080}"
 
 # Minimum UID/GID for non-system users (system users/groups are below this threshold)
 SYSTEM_UID_GID_MAX=999
