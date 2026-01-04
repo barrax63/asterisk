@@ -364,6 +364,8 @@ server {
     autoindex on;
     autoindex_exact_size off;
     autoindex_localtime on;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
 
     location / {
         try_files \$uri \$uri/ =404;
@@ -373,9 +375,12 @@ EOF
 
     if nginx -t; then
         if pgrep nginx >/dev/null 2>&1; then
-            nginx -s reload >/dev/null || true
+            if ! nginx -s reload; then
+                echo "WARNING: nginx reload failed, attempting restart."
+                nginx -g 'daemon on;'
+            fi
         else
-            nginx -g 'daemon on;' >/dev/null
+            nginx -g 'daemon on;'
         fi
         echo "Started nginx to serve /opt/asterisk/recordings on port ${RECORDINGS_HTTP_PORT}"
     else
