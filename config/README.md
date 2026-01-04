@@ -4,22 +4,9 @@ This directory contains the lean IVR-only Asterisk configuration files that are 
 
 ## Configuration Files
 
-### modules.conf
+### extensions.conf
 
-The `modules.conf` file provides runtime safeguards against loading unused modules. It complements the build-time module disabling in the Dockerfile with 147 `noload` directives.
-
-**Key Features:**
-- Disables all channel drivers except PJSIP
-- Keeps only alaw, ulaw, g722 codecs
-- Keeps PCM/WAV format handlers for IVR prompts
-- Keeps IVR essentials: playback, read, dial, waitexten, stack
-- Disables ARI/Stasis, SNMP, HEP, MOH, voicemail, conferencing, queues
-
-**Optional Modules** (documented with comments):
-- AMI (enabled by default)
-- CDR/CEL (enabled by default)
-- SRTP/crypto (enabled by default)
-- AGI (disabled by default)
+The `extensions.conf` file provides the dialplan for asterisk. It comes with a basic test dialplan that answers the call, plays beep tones and ends the call.
 
 ### pjsip.conf
 
@@ -30,44 +17,17 @@ Pre-configured PJSIP configuration for FritzBox SIP trunk registration. Uses env
 - `ASTERISK_IP` → `${ASTERISK_IP}` from .env
 - `FRITZBOX_IP` → `${FRITZBOX_IP}` from .env
 
-**Includes:**
-- Transport configuration (UDP on port 5060)
-- FritzBox registration
-- Authentication
-- Endpoint with g722, alaw, ulaw codecs
-- AOR and identify sections
+### How to replace with your own configuration files
 
-### extensions.conf
+Create a local `extensions.conf` or `pjsip.conf` on your machine and enter your dialplan. When you saved it, copy it into the container and reload the config:
 
-Dialplan with language selection and a simple main menu. Includes:
-- `[incoming_calls]` context that answers, sets default language to German, and jumps to language selection
-- `[language_selection]` context to pick German or English before entering the main menu
-- `[main_menu]` context that plays prompts and records the call via `MixMonitor` to `/opt/asterisk/recordings/${UNIQUEID}.wav`
+```bash
+docker compose cp ./extensions.conf asterisk:/etc/asterisk/extensions.conf # ... or pjsip.conf
+docker compose exec asterisk asterisk -rx "dialplan reload" # If changing the extensions.conf
+docker compose exec asterisk asterisk -rx "pjsip reload" # If changing the pjsip.conf
+```
 
-## Usage
-
-### Customizing Configuration
-
-To customize the configuration:
-
-1. Edit the files in `config/` before building (they seed the `asterisk_config` named volume at `/etc/asterisk`):
-   ```bash
-   vi config/extensions.conf  # Customize your IVR dialplan
-   vi config/pjsip.conf       # Adjust PJSIP settings if needed
-   vi config/modules.conf     # Enable/disable optional modules
-   ```
-
-2. Rebuild the image to bake in your changes:
-   ```bash
-   docker compose build
-   ```
-
-3. Start/restart the container:
-   ```bash
-   docker compose up -d
-   ```
-
-### Environment Variables
+## Environment Variables
 
 Set these in your `.env` file (copy from `.env.example`):
 

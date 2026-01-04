@@ -22,16 +22,6 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 
 ## Directory Structure
 
-```text
-.
-├── Dockerfile               # Asterisk container build instructions
-├── docker-compose.yml       # Service orchestration (named volumes)
-├── README.md                # This file
-├── IVR_BUILD.md             # IVR-only build & configuration guide
-├── config/                  # Baked into image, seeds /etc/asterisk volume
-└── data/                    # Baked into image, seeds /var/lib/asterisk volume
-```
-
 - Place your configuration files (e.g. `pjsip.conf`, `extensions.conf`) in `config/` before build; they will seed the `asterisk_config` volume.
 - Place custom sound files and other data in `data/` before build if you want them copied into the image; runtime updates live in the `asterisk_data` volume.
 - Logs are written to the `asterisk_logs` volume.
@@ -155,24 +145,6 @@ docker compose up -d
 ```
 
 This will rebuild the image from scratch and restart the container with the updated Asterisk version or configuration.
-
-### Configuration Changes
-
-Configuration files are persisted in the `asterisk_config` named volume at `/etc/asterisk`. To apply changes:
-
-1. Edit your configuration files inside the container (or copy them in):
-   ```bash
-   docker compose exec asterisk sh -c 'vi /etc/asterisk/pjsip.conf'
-   ```
-2. Reload or restart Asterisk inside the container:
-
-   ```bash
-   # Reload from CLI
-   docker compose exec asterisk asterisk -rx "core reload"
-
-   # Or restart the container
-   docker compose restart asterisk
-   ```
 
 ### Data and Sound Files
 
