@@ -19,6 +19,7 @@ DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
 NGINX_CONF_DIR="/etc/nginx/conf.d"
 RECORDINGS_HTTP_PORT="${RECORDINGS_HTTP_PORT:-8080}"
+RECORDINGS_HTTP_SERVE="${RECORDINGS_HTTP_SERVE:-false}"
 
 # Minimum UID/GID for non-system users (system users/groups are below this threshold)
 SYSTEM_UID_GID_MAX=999
@@ -351,7 +352,7 @@ if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     echo "Documentation successfully restored to ${DOC_TARGET_DIR}"
 fi
 
-if command -v nginx >/dev/null 2>&1; then
+if command -v nginx >/dev/null 2>&1 && [ "${RECORDINGS_HTTP_SERVE}" = "true" ]; then
     mkdir -p "${NGINX_CONF_DIR}"
     rm -f /etc/nginx/sites-enabled/default
     cat > "${NGINX_CONF_DIR}/recordings.conf" <<EOF
