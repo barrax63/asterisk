@@ -368,11 +368,15 @@ server {
     add_header X-Frame-Options DENY;
     add_header X-XSS-Protection '1; mode=block';
 
+    location ~* \.wav$ {
+        try_files \$uri =404;
+    }
+
     location / {
         try_files \$uri \$uri/ =404;
     }
 
-    location ~* \.(?!wav$).*$ {
+    location ~* \.[^/]+$ {
         return 403;
     }
 }
@@ -383,6 +387,7 @@ EOF
             if ! nginx -s reload; then
                 echo "WARNING: nginx reload failed, attempting restart."
                 nginx -s stop || true
+                sleep 1
                 nginx -g 'daemon on;'
             fi
         else
