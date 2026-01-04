@@ -19,6 +19,7 @@ DOC_TARGET_DIR="/var/lib/asterisk/documentation"
 XMLDOC_RELOAD_RETRIES=10
 NGINX_CONF_DIR="/etc/nginx/conf.d"
 RECORDINGS_HTTP_PORT="${RECORDINGS_HTTP_PORT:-8080}"
+RECORDINGS_HTTP_SERVE="${RECORDINGS_HTTP_SERVE:-false}"
 
 # Minimum UID/GID for non-system users (system users/groups are below this threshold)
 SYSTEM_UID_GID_MAX=999
@@ -351,7 +352,7 @@ if [ -d "${DOC_STASH_DIR}" ] && [ "${DOC_TARGET_POPULATED}" = false ]; then
     echo "Documentation successfully restored to ${DOC_TARGET_DIR}"
 fi
 
-if command -v nginx >/dev/null 2>&1; then
+if command -v nginx >/dev/null 2>&1 && [ "${RECORDINGS_HTTP_SERVE}" = "true" ]; then
     mkdir -p "${NGINX_CONF_DIR}"
     rm -f /etc/nginx/sites-enabled/default
     cat > "${NGINX_CONF_DIR}/recordings.conf" <<EOF
@@ -368,6 +369,9 @@ server {
     add_header X-Frame-Options DENY;
 
     location / {
+        sub_filter 'Index of /' 'Asterisk Recordings';
+        sub_filter '</body>' '<script>(function(){var pre=document.querySelector("pre");if(!pre){return;}var month={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};var observer;function sortList(){if(observer){observer.disconnect();}var lines=pre.innerHTML.trim().split(/\\n+/);if(!lines.length){if(observer){observer.observe(pre,{childList:true,subtree:true});}return;}var parent=lines[0];var items=lines.slice(1).map(function(line){var m=line.match(/<a href="([^"]+)">([^<]+)<\\/a>\\s+(\\d{2})-([A-Za-z]{3})-(\\d{4})\\s+(\\d{2}):(\\d{2})/);if(!m){return{raw:line,sort:-Infinity};}var ts=Date.UTC(parseInt(m[5],10),month[m[4]],parseInt(m[3],10),parseInt(m[6],10),parseInt(m[7],10));return{raw:line,sort:ts};}).sort(function(a,b){return(b.sort||0)-(a.sort||0);});pre.innerHTML=[parent].concat(items.map(function(i){return i.raw;})).join("\\n");if(observer){observer.observe(pre,{childList:true,subtree:true});}}observer=new MutationObserver(sortList);observer.observe(pre,{childList:true,subtree:true});sortList();})();</script></body>';
+        sub_filter_once off;
         try_files \$uri \$uri/ =404;
     }
 

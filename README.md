@@ -34,7 +34,7 @@ This Docker setup provides a containerized Asterisk 20 instance based on Debian 
 If you are using UFW on the host, open the relevant ports for Asterisk:
 
 ```bash
-sudo ufw allow 8080/tcp
+sudo ufw allow 8080/tcp # only if serving recordings via HTTP
 sudo ufw allow 5060/tcp
 sudo ufw allow 5060/udp
 sudo ufw allow 10000:20000/udp
@@ -72,9 +72,6 @@ ASTERISK_IP=192.168.1.100
 
 # FritzBox IP Address
 FRITZBOX_IP=192.168.1.1
-
-# HTTP port for downloading call recordings
-RECORDINGS_HTTP_PORT=6000
 ```
 
 ### 4. Prepare Configuration (optional)
