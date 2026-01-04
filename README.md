@@ -136,7 +136,7 @@ docker compose restart asterisk
   Persisted in the `asterisk_logs` volume at `/var/log/asterisk`. View with `docker compose logs asterisk` or by exec/cp from the volume.
 
 - **Call recordings (MixMonitor)**:  
-  The default dialplan records calls to `/opt/asterisk/recordings/${UNIQUEID}.wav`. This path is created in the image and owned by the `asterisk` user and mounted to `./asterisk/recordings`. An embedded nginx server exposes the directory over HTTP at `http://<host>:${RECORDINGS_HTTP_PORT:-6000}/` for easy downloads.
+  The default dialplan records calls to `/opt/asterisk/recordings/${UNIQUEID}.wav`. This path is created in the image and owned by the `asterisk` user and mounted to `./asterisk/recordings`. An embedded nginx server exposes the directory over HTTP at `http://<host>:${RECORDINGS_HTTP_PORT:-6000}/` for easy downloads. The HTTP server has no authentication and uses host networking; pick an available port and restrict access to trusted networks.
 
 ## Maintenance
 

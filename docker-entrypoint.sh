@@ -373,9 +373,9 @@ EOF
 
     if nginx -t; then
         if pgrep nginx >/dev/null 2>&1; then
-            nginx -s reload >/dev/null 2>&1 || true
+            nginx -s reload >/dev/null || true
         else
-            nginx -g 'daemon on;' >/dev/null 2>&1
+            nginx -g 'daemon on;' >/dev/null
         fi
         echo "Started nginx to serve /opt/asterisk/recordings on port ${RECORDINGS_HTTP_PORT}"
     else
