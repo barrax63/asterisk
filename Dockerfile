@@ -310,6 +310,8 @@ WORKDIR /var/lib/asterisk
 
 # SIP signalling and RTP ports
 EXPOSE 5060/tcp 5060/udp 10000-20000/udp
+
+# Web server port
 EXPOSE 6000/tcp
 
 # Entrypoint runs as root and drops privileges to asterisk user when launching Asterisk
