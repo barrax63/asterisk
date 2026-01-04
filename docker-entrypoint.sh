@@ -368,6 +368,9 @@ server {
     add_header X-Frame-Options DENY;
 
     location / {
+        sub_filter 'Index of /' 'Asterisk Recordings';
+        sub_filter '</body>' '<script>(function(){var pre=document.querySelector("pre");if(!pre){return;}var lines=pre.innerHTML.trim().split(/\\n+/);if(!lines.length){return;}var parent=lines[0];var month={Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};var items=lines.slice(1).map(function(line){var m=line.match(/<a href="([^"]+)">([^<]+)<\\/a>\\s+(\\d{2})-([A-Za-z]{3})-(\\d{4})\\s+(\\d{2}):(\\d{2})/);if(!m){return{raw:line,sort:-Infinity};}var ts=Date.UTC(parseInt(m[5],10),month[m[4]],parseInt(m[3],10),parseInt(m[6],10),parseInt(m[7],10));return{raw:line,sort:ts};}).sort(function(a,b){return(b.sort||0)-(a.sort||0);});pre.innerHTML=[parent].concat(items.map(function(i){return i.raw;})).join("\\n");})();</script></body>';
+        sub_filter_once off;
         try_files \$uri \$uri/ =404;
     }
 
