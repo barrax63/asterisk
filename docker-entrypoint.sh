@@ -372,7 +372,11 @@ server {
 EOF
 
     if nginx -t; then
-        nginx -s reload >/dev/null 2>&1 || nginx
+        if pgrep nginx >/dev/null 2>&1; then
+            nginx -s reload >/dev/null 2>&1 || true
+        else
+            nginx -g 'daemon on;' >/dev/null 2>&1
+        fi
         echo "Started nginx to serve /opt/asterisk/recordings on port ${RECORDINGS_HTTP_PORT}"
     else
         echo "WARNING: nginx configuration invalid, skipping nginx startup."
