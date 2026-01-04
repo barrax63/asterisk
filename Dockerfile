@@ -44,6 +44,8 @@ RUN apt-get update && \
     make menuselect.makeopts && \
     # Disable modules for lean IVR-only build (keeping only PJSIP + alaw/ulaw/g722)
     menuselect/menuselect \
+      --enable codec_g722 \
+      --enable format_g722 \
       --disable res_config_pgsql \
       --disable res_config_ldap \
       --disable res_config_odbc \

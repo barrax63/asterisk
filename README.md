@@ -76,7 +76,24 @@ FRITZBOX_IP=192.168.1.1
 
 Configuration files are pre-configured in `config/` and baked into the image; they seed the `asterisk_config` named volume on first start. If you want to customize before build, edit the files under `config/` now.
 
-### 5. Build and Start
+### 5. Setup Extension (FRITZ!Box)
+
+#### Step 1: Log into your FRITZ!Box
+
+Open a web browser and go to http://fritz.box or the IP address of your FRITZ!Box. Log in with your admin credentials.
+
+#### Step 2: Configure a New Phone
+
+1. Go to **Telephony > Telephony Devices**.
+2. Click on **Configure New Device**.
+3. Select **Telephone (with or without answering machine)**.
+4. Choose **LAN/WLAN (IP telephone)** and click Next.
+5. Assign the user name `asterisk` and password for the IP phone. Note these details as you will need them for the Asterisk configuration.
+6. Assign the desired phone numbers to this IP phone and finish the setup.
+
+> Note that you need to assign a number that will be used by Asterisk exclusively.
+
+### 6. Build and Start
 
 From within the project directory:
 
@@ -93,7 +110,7 @@ docker compose logs -f asterisk
 
 The entrypoint script will automatically configure pjsip.conf with your environment variables from `.env`.
 
-### 6. Connect to the Asterisk CLI
+### 7. Connect to the Asterisk CLI
 
 To attach to the Asterisk CLI for debugging and administration:
 
@@ -103,7 +120,7 @@ docker compose exec asterisk asterisk -rvvvvv
 
 You should see an Asterisk banner and a CLI prompt.
 
-### 7. Customize Your IVR Dialplan
+### 8. Customize Your IVR Dialplan
 
 The container comes with a basic IVR dialplan in `config/extensions.conf`. Customize it for your needs:
 

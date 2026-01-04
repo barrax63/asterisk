@@ -40,6 +40,25 @@ FRITZBOX_IP=192.168.1.1
 
 The entrypoint script automatically replaces placeholders in pjsip.conf at container startup.
 
+## Recordings
+
+If your dialplan features MixMonitor recordings make sure to point them to `/opt/asterisk/recordings/`. There is a separate volume attached for it.
+
+You can copy all recordings to your local machine using the following command:
+
+```bash
+docker compose cp asterisk:/opt/asterisk/recordings ./recordings
+```
+
+You can also copy single recordings:
+
+```bash
+docker compose exec asterisk ls -lisah /opt/asterisk/recordings # list all recordings
+docker compose cp asterisk:/opt/asterisk/recordings/1767527404.1.wav ./recordings # copy 1767527404.1.wav
+```
+
+Alternatively, you can use the webpage the container exposes to download the files individually from the local network.
+
 ## Verification
 
 After starting the container:
