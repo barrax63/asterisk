@@ -26,9 +26,6 @@ services:
     init: true
     user: "0:0"
     network_mode: host
-    dns:
-      - 1.1.1.1
-      - 1.0.0.1
     restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
