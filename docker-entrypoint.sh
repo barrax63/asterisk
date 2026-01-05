@@ -48,6 +48,13 @@ disable_ipv6_for_asterisk() {
         return
     fi
 
+    if ! sysctl -w net.ipv6.conf.all.disable_ipv6=1 >/dev/null 2>&1; then
+        echo "Warning: Unable to disable IPv6 via sysctl net.ipv6.conf.all.disable_ipv6"
+    fi
+    if ! sysctl -w net.ipv6.conf.default.disable_ipv6=1 >/dev/null 2>&1; then
+        echo "Warning: Unable to disable IPv6 via sysctl net.ipv6.conf.default.disable_ipv6"
+    fi
+
     if [ -f /etc/gai.conf ]; then
         if grep -Eq "${precedence_grep_pattern}" /etc/gai.conf; then
             sed -Ei "s!${precedence_grep_pattern}[[:space:]]*$!${precedence_line}!" /etc/gai.conf
