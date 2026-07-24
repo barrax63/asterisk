@@ -1,14 +1,7 @@
-# Asterisk runtime directories - these contain generated/runtime data
-asterisk/data/*
-asterisk/logs/*
-
-# Only keep templates in config, ignore generated configs
-asterisk/config/*
-!asterisk/config/asterisk.conf
-!asterisk/config/modules.conf
-!asterisk/config/pjsip.conf
-!asterisk/config/extensions.conf
-!asterisk/config/README.md
+# Note: config/ and data/ at the repo root are intentionally tracked in full -
+# they are baked into the image at build time (see Dockerfile). Runtime state
+# (logs, voicemail, recordings, etc.) lives in Docker named volumes, not in
+# these directories, so no generated-file exclusions are needed for them.
 
 # Environment files with secrets
 .env

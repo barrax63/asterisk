@@ -1,0 +1,38 @@
+# Keep the build context small and avoid leaking local/host-only files into
+# the image build. Only .git, docs, env files, and editor/OS cruft are
+# excluded here; config/ and data/ (which the Dockerfile COPYs) are left
+# untouched so nothing required by the build gets accidentally dropped.
+
+# Version control (not needed in build context; also keeps context transfer fast)
+/.git
+/.gitattributes
+
+# GitHub metadata
+/.github
+
+# Top-level documentation
+/README.md
+
+# Local environment files with secrets - never send these into the build context
+.env
+.env.*
+!.env.example
+
+# Editor / IDE
+.vscode/
+.idea/
+*.iml
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Logs, temp and backup files
+*.log
+*.tmp
+*.bak
+*.backup
+*.old
+*.swp
+*.swo
+*~

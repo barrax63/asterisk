@@ -3,9 +3,12 @@
 # =============================================================================
 FROM debian:bookworm-slim AS builder
 
+# Track the latest Asterisk 20 LTS release. Override with
+# --build-arg ASTERISK_VERSION=20.x.y to pin a specific release.
+ARG ASTERISK_VERSION=20-current
+
 # Non-interactive apt
-ENV DEBIAN_FRONTEND=noninteractive \
-    ASTERISK_VERSION=20-current
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Build dependencies and useful tools for the build process
 RUN apt-get update && \
@@ -32,10 +35,12 @@ RUN apt-get update && \
 WORKDIR /usr/src
 
 # Download, extract, build, and install Asterisk plus sample configs & init scripts
-RUN apt-get update && \
-    wget http://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz && \
-    tar xvf asterisk-${ASTERISK_VERSION}.tar.gz && \
+RUN wget "https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-${ASTERISK_VERSION}.tar.gz" && \
+    tar xf "asterisk-${ASTERISK_VERSION}.tar.gz" && \
     cd asterisk-20.* && \
+    # install_prereq shells out to apt-get install; the apt cache was purged in
+    # the previous layer, so it must be refreshed before it runs.
+    apt-get update && \
     # Install additional script dependencies (force apt-get, not aptitude)
     ASTERISK_PREFER_APTITUDE=no contrib/scripts/install_prereq install && \
     # Configure the build
@@ -170,6 +175,9 @@ RUN apt-get update && \
 # =============================================================================
 FROM debian:bookworm-slim
 
+# Re-declare so the requested version can be reflected in the image label below.
+ARG ASTERISK_VERSION=20-current
+
 # OCI Image Specification Labels
 LABEL org.opencontainers.image.title="asterisk-20" \
       org.opencontainers.image.description="Production Asterisk 20 running on Debian 12 (bookworm-slim)" \
@@ -177,23 +185,26 @@ LABEL org.opencontainers.image.title="asterisk-20" \
       org.opencontainers.image.url="https://github.com/barrax63/asterisk" \
       org.opencontainers.image.source="https://github.com/barrax63/asterisk" \
       org.opencontainers.image.documentation="https://github.com/barrax63/asterisk/blob/main/README.md" \
-      org.opencontainers.image.base.name="docker.io/library/debian:bookworm-slim"
+      org.opencontainers.image.base.name="docker.io/library/debian:bookworm-slim" \
+      org.opencontainers.image.version="${ASTERISK_VERSION}"
 
 # Non-interactive apt and Asterisk user/group defaults
 ENV DEBIAN_FRONTEND=noninteractive \
     ASTERISK_USER=asterisk \
     ASTERISK_GROUP=asterisk
 
-# Runtime dependencies only (toolchain is *not* installed here)
+# Runtime dependencies only (toolchain and -dev headers are *not* installed here).
+# These are the runtime shared-library packages the compiled asterisk binary and
+# modules actually link against (verified via ldd), swapped in for the -dev
+# packages the builder stage needed.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        libxml2-dev \
-        libncurses5-dev \
-        libsqlite3-dev \
-        uuid-dev \
-        libjansson-dev \
-        libssl-dev \
-        libedit-dev \
+        libxml2 \
+        libsqlite3-0 \
+        libuuid1 \
+        libjansson4 \
+        libssl3 \
+        libedit2 \
         libxslt1.1 \
         liburiparser1 \
         libneon27-gnutls \
@@ -221,7 +232,6 @@ RUN apt-get update && \
         libradcli4 \
         libunbound8 \
         libcap2-bin \
-        liburiparser1 \
         ca-certificates \
         iproute2 \
         procps \
@@ -313,6 +323,12 @@ EXPOSE 5060/tcp 5060/udp 10000-20000/udp
 
 # Web server port
 EXPOSE 8080/tcp
+
+# Default health check so the image is self-contained even when run without
+# docker-compose. docker-compose.yml defines the same check, which takes
+# precedence for compose-managed deployments.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD ["asterisk", "-rx", "core show version"]
 
 # Entrypoint runs as root and drops privileges to asterisk user when launching Asterisk
 # This allows the entrypoint to handle bind-mount permissions and documentation restoration

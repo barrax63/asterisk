@@ -13,6 +13,7 @@ x-logging: &default-logging
 x-security-baseline: &security-baseline
   security_opt:
     - apparmor=docker-default
+    - no-new-privileges:true
   cap_drop:
     - ALL
 
@@ -27,6 +28,9 @@ services:
     user: "0:0"
     network_mode: host
     restart: unless-stopped
+    # Give Asterisk time to hang up active calls / flush recordings on SIGTERM
+    # before Docker escalates to SIGKILL (default grace period is only 10s).
+    stop_grace_period: 30s
     environment:
       - TZ=Europe/Berlin
       - ASTERISK_USER=${ASTERISK_USER}
